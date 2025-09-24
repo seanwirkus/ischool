@@ -1,5 +1,5 @@
 //
-//  Class.swift
+//  Course.swift
 //  Sean
 //
 //  Created by Sean Wirkus on 9/21/25.
@@ -10,18 +10,18 @@ import SwiftData
 import SwiftUI
 
 @Model
-final class Class {
+final class Course {
     var id: UUID
     var name: String
-    var description: String?
+    var detail: String?
     var color: String // hex color
     var createdDate: Date
-    @Relationship(deleteRule: .cascade, inverse: \Lecture.classItem) var lectures: [Lecture] = []
+    @Relationship(deleteRule: .cascade, inverse: \Lecture.course) var lectures: [Lecture] = []
 
-    init(id: UUID = UUID(), name: String, description: String? = nil, color: String = "#4ECDC4", createdDate: Date = Date()) {
+    init(id: UUID = UUID(), name: String, detail: String? = nil, color: String = "#4ECDC4", createdDate: Date = Date()) {
         self.id = id
         self.name = name
-        self.description = description
+        self.detail = detail
         self.color = color
         self.createdDate = createdDate
     }
