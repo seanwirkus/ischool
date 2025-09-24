@@ -159,9 +159,23 @@ struct AddToCalendarSheet: View {
     }
 
     private func requestCalendarAccess() {
-        eventStore.requestAccess(to: .event) { granted, error in
-            if let error = error {
-                print("Error requesting calendar access: \(error)")
+        if #available(iOS 17.0, macOS 14.0, *) {
+            eventStore.requestFullAccessToEvents { granted, error in
+                if let error = error {
+                    print("Error requesting calendar access: \(error)")
+                }
+                if !granted {
+                    print("Calendar access not granted.")
+                }
+            }
+        } else {
+            eventStore.requestAccess(to: .event) { granted, error in
+                if let error = error {
+                    print("Error requesting calendar access: \(error)")
+                }
+                if !granted {
+                    print("Calendar access not granted.")
+                }
             }
         }
     }

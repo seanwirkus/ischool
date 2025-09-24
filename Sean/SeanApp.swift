@@ -16,6 +16,9 @@ struct SeanApp: App {
             Lecture.self,
             LectureNote.self,
             LectureFile.self,
+            CourseMeeting.self,
+            Syllabus.self,
+            Assignment.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -33,3 +36,4 @@ struct SeanApp: App {
         .modelContainer(sharedModelContainer)
     }
 }
+

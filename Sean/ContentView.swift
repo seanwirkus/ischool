@@ -1,20 +1,22 @@
-//
-//  ContentView.swift
-//  Sean
-//
-//  Created by Sean Wirkus on 9/21/25.
-//
-
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct ContentView: View {
+    @State private var courseToDelete: Course? = nil
+    @State private var showDeleteAlert: Bool = false
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Course.createdDate, order: .reverse) private var courses: [Course]
+    @Query(sort: \Lecture.date, order: .forward) private var lectures: [Lecture]
 
     @State private var showingAddCourseSheet = false
     @State private var selectedCourse: Course? = nil
     @State private var showingCalendar = false
+    @State private var showingQuickNoteSheet = false
+    @State private var showingQuickFileImporter = false
+    @State private var showingQuickAssignmentSheet = false
+    @State private var showingQuickFileCourseSelector = false
+    @State private var pendingFileURLs: [URL] = []
 
     var body: some View {
         NavigationStack {
@@ -25,54 +27,81 @@ struct ContentView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 20) {
-                    // Header
+                    // Header with quick actions
                     HStack {
                         Text("My Courses")
                             .font(.largeTitle.bold())
                             .foregroundStyle(.primary)
                         Spacer()
-                        Button(action: { showingCalendar = true }) {
-                            Image(systemName: "calendar")
-                                .font(.title2)
-                                .foregroundStyle(.primary)
+                        HStack(spacing: 16) {
+                            QuickAddButton(icon: "note.text", title: "Note") {
+                                showingQuickNoteSheet = true
+                            }
+                            QuickAddButton(icon: "paperclip", title: "File") {
+                                showingQuickFileImporter = true
+                            }
+                            QuickAddButton(icon: "checkmark.circle", title: "Assignment") {
+                                showingQuickAssignmentSheet = true
+                            }
+                            Button(action: { showingCalendar = true }) {
+                                Image(systemName: "calendar")
+                                    .font(.title2)
+                                    .foregroundStyle(.primary)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
 
-                    // Course cards grid
+                    // Content: horizontal course chips + week schedule
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 16)], spacing: 16) {
-                            ForEach(courses) { course in
-                                CourseCardView(course: course)
-                                    .onTapGesture {
-                                        selectedCourse = course
+                        VStack(alignment: .leading, spacing: 20) {
+                            // Horizontal course chips
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(courses) { course in
+                                        CourseChipView(course: course)
+                                            .onTapGesture { selectedCourse = course }
+                                            .contextMenu {
+                                                Button("Rename") {
+                                                    selectedCourse = course
+                                                    // Show rename sheet/modal (implement as needed)
+                                                }
+                                                Button("Change Color") {
+                                                    selectedCourse = course
+                                                    // Show color picker sheet/modal (implement as needed)
+                                                }
+                                                Divider()
+                                                Button(role: .destructive) {
+                                                    courseToDelete = course
+                                                    showDeleteAlert = true
+                                                } label: {
+                                                    Label("Delete", systemImage: "trash")
+                                                }
+                                            }
+            .alert("Delete Course?", isPresented: $showDeleteAlert, presenting: courseToDelete) { course in
+                Button("Delete", role: .destructive) {
+                    modelContext.delete(course)
+                    courseToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    courseToDelete = nil
+                }
+            } message: { _ in
+                Text("This action cannot be undone.")
+            }
                                     }
-                            }
-
-                            // Add new course card
-                            Button(action: { showingAddCourseSheet = true }) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(.ultraThinMaterial)
-                                        .frame(height: 120)
-                                        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-
-                                    VStack {
-                                        Image(systemName: "plus.circle.fill")
-                                            .font(.largeTitle)
-                                            .foregroundStyle(.secondary)
-                                        Text("Add Course")
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    AddCourseChipView(action: { showingAddCourseSheet = true })
                                 }
+                                .padding(.horizontal, 20)
                             }
-                            .buttonStyle(.plain)
+
+                            // Week schedule view (default)
+                            WeekScheduleView(allLectures: lectures)
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 20)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
                     }
                 }
             }
@@ -80,114 +109,238 @@ struct ContentView: View {
                 CourseDetailView(course: course)
             }
             .sheet(isPresented: $showingAddCourseSheet) {
-                AddCourseSheet { name, description, color in
-                    let newCourse = Course(name: name, detail: description, color: color)
+                AddCourseSheet { name, description, color, units, meetings in
+                    let newCourse = Course(name: name, detail: description, color: color, units: units)
                     modelContext.insert(newCourse)
+                    for meeting in meetings {
+                        meeting.course = newCourse
+                        modelContext.insert(meeting)
+                    }
+                    // Generate lectures from meetings
+                    generateLectures(for: newCourse, meetings: meetings)
                 }
             }
             .sheet(isPresented: $showingCalendar) {
                 CalendarView()
             }
+            .sheet(isPresented: $showingQuickNoteSheet) {
+                QuickNoteSheet(courses: courses) { content, course in
+                    let targetLecture = findNearestLecture(for: course)
+                    let newNote = LectureNote(content: content, lecture: targetLecture)
+                    modelContext.insert(newNote)
+                }
+            }
+            .sheet(isPresented: $showingQuickAssignmentSheet) {
+                QuickAssignmentSheet(courses: courses) { title, description, dueDate, priority, course in
+                    let newAssignment = Assignment(title: title, assignmentDescription: description, dueDate: dueDate, priority: priority, course: course)
+                    modelContext.insert(newAssignment)
+                }
+            }
+            .fileImporter(isPresented: $showingQuickFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+                switch result {
+                case .success(let urls):
+                    // Show course selector for file attachment
+                    showingQuickFileCourseSelector = true
+                    pendingFileURLs = urls
+                case .failure(let error):
+                    print("File import failed: \(error)")
+                }
+            }
+            .sheet(isPresented: $showingQuickFileCourseSelector) {
+                QuickFileCourseSelector(courses: courses) { course in
+                    let targetLecture = findNearestLecture(for: course)
+                    for url in pendingFileURLs {
+                        do {
+                            let data = try Data(contentsOf: url)
+                            let filename = url.lastPathComponent
+                            let newFile = LectureFile(filename: filename, fileData: data, lecture: targetLecture)
+                            modelContext.insert(newFile)
+                        } catch {
+                            print("Error loading file: \(error)")
+                        }
+                    }
+                    pendingFileURLs = []
+                }
+            }
+        }
+    }
+
+    private func findNearestLecture(for course: Course) -> Lecture? {
+        let now = Date()
+        let todayLectures = course.lectures.filter { Calendar.current.isDate($0.date, inSameDayAs: now) }
+        if let todayLecture = todayLectures.sorted(by: { $0.date < $1.date }).first(where: { $0.date >= now }) {
+            return todayLecture
+        }
+        if let firstTodayLecture = todayLectures.sorted(by: { $0.date < $1.date }).first {
+            return firstTodayLecture
+        }
+
+        // Find next upcoming lecture
+        let upcomingLectures = course.lectures.filter { $0.date > now }.sorted(by: { $0.date < $1.date })
+        return upcomingLectures.first
+    }
+
+    private func generateLectures(for course: Course, meetings: [CourseMeeting]) {
+        let term = course.term ?? Term(name: "Default Term", startDate: course.termStartDate ?? Date(), endDate: course.termEndDate ?? Calendar.current.date(byAdding: .month, value: 3, to: Date())!)
+        let calendar = Calendar.current
+        var date = term.startDate
+        while date <= term.endDate {
+            let weekday = calendar.component(.weekday, from: date)
+            for meeting in meetings where meeting.dayOfWeek == weekday {
+                let startDateTime = calendar.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: date)!
+                let lecture = Lecture(title: "Lecture", date: startDateTime, course: course)
+                modelContext.insert(lecture)
+            }
+            date = calendar.date(byAdding: .day, value: 1, to: date)!
         }
     }
 }
 
-struct CourseCardView: View {
+struct QuickAddButton: View {
+    let icon: String
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Image(systemName: icon)
+                    .font(.caption)
+                Text(title)
+                    .font(.caption2)
+            }
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.ultraThinMaterial)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private extension Date {
+    var startOfDay: Date { Calendar.current.startOfDay(for: self) }
+    var endOfDay: Date { Calendar.current.date(byAdding: DateComponents(day: 1, second: -1), to: startOfDay) ?? self }
+}
+
+struct CourseChipView: View {
     let course: Course
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Circle()
-                        .fill(course.colorValue)
-                        .frame(width: 12, height: 12)
-                    Spacer()
-                    Text("\(course.lectures.count)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Text(course.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-
-                if let det = course.detail {
-                    Text(det)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .fill(course.colorValue)
+                    .frame(width: 50, height: 50)
+                Text(course.name.prefix(1))
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
             }
-            .padding(16)
+            Text(course.name)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .frame(width: 60)
         }
-        .frame(height: 120)
+        .padding(.vertical, 8)
     }
 }
 
-struct AddCourseSheet: View {
-    let onSave: (String, String?, String) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name = ""
-    @State private var description = ""
-    @State private var color = "#4ECDC4"
-
-    let colors = ["#4ECDC4", "#45B7D1", "#96CEB4", "#FECA57", "#FF9FF3", "#54A0FF"]
+struct AddCourseChipView: View {
+    let action: () -> Void
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Course Info") {
-                    TextField("Course Name", text: $name)
-                    TextField("Description (optional)", text: $description, axis: .vertical)
-                        .lineLimit(2...4)
+        Button(action: action) {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Circle()
+                                .stroke(.secondary.opacity(0.3), lineWidth: 2)
+                        )
+                    Image(systemName: "plus")
+                        .font(.title2.bold())
+                        .foregroundStyle(.secondary)
                 }
+                Text("Add Course")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: 60)
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+    }
+}
 
-                Section("Color") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                        ForEach(colors, id: \.self) { hex in
-                            Button(action: { color = hex }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(hex: hex) ?? .blue)
-                                        .frame(width: 40, height: 40)
-                                    if color == hex {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(.white)
-                                            .font(.caption.bold())
+struct WeekScheduleView: View {
+    let allLectures: [Lecture]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("Course Schedule")
+                .font(.title.bold())
+                .foregroundColor(.accentColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding([.top, .horizontal], 24)
+
+            ScrollView {
+                VStack(spacing: 16) {
+                    if allLectures.isEmpty {
+                        Text("No lectures scheduled.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 24)
+                            .frame(maxWidth: .infinity)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.windowBackgroundColor)))
+                    } else {
+                        ForEach(groupedLectures.keys.sorted(), id: \ .self) { date in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(date.formatted(.dateTime.weekday(.wide)))
+                                    .font(.headline)
+                                    .foregroundColor(.accentColor)
+                                ForEach(groupedLectures[date] ?? []) { lecture in
+                                    HStack {
+                                        Circle()
+                                            .fill(lecture.course?.colorValue ?? .blue)
+                                            .frame(width: 10, height: 10)
+                                        Text(lecture.title)
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        Text(lecture.date.formatted(.dateTime.hour().minute()))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
                                     }
+                                    .padding(.vertical, 4)
                                 }
                             }
+                            .padding()
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.windowBackgroundColor)))
                         }
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
             }
-            .navigationTitle("Add Course")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(name, description.isEmpty ? nil : description, color)
-                        dismiss()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
+        }
+    }
+
+    private var groupedLectures: [Date: [Lecture]] {
+        let calendar = Calendar.current
+        return Dictionary(grouping: allLectures) { lecture in
+            calendar.startOfDay(for: lecture.date)
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Course.self, Lecture.self, LectureNote.self, LectureFile.self], inMemory: true)
+        .modelContainer(for: [Course.self, Lecture.self, LectureNote.self, LectureFile.self, CourseMeeting.self, Syllabus.self, Assignment.self], inMemory: true)
 }

@@ -1,0 +1,229 @@
+{
+  "" : {
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Sean-primary.dia",
+    "emit-module-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Sean-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Sean-primary-emit-module.dia",
+    "pch" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Sean-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Sean-primary.swiftdeps"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/AddAssignmentSheet.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddAssignmentSheet~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/AddScheduleSheet.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddScheduleSheet~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/AddSyllabusSheet.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/AddSyllabusSheet~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/Assignment.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Assignment~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/CalendarView.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CalendarView~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/ColorChipLabel.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorChipLabel~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/ColorExtensions.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ColorExtensions~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/ContentView.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/Course.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Course~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/CourseDetailView.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseDetailView~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/CourseMeeting.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/CourseMeeting~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/Item.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Item~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/Lecture.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Lecture~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/LectureDetailView.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureDetailView~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/LectureFile.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureFile~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/LectureNote.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/LectureNote~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/QuickAssignmentSheet.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickAssignmentSheet~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/QuickFileCourseSelector.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickFileCourseSelector~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/QuickNoteSheet.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/QuickNoteSheet~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/SeanApp.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/SeanApp~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/Sean/Syllabus.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/Syllabus~partial.swiftmodule"
+  },
+  "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/sean/Documents/GithubApp/Sean App/build/Sean.build/Debug-iphonesimulator/Sean.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

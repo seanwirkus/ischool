@@ -10,22 +10,9 @@
 		1428192E2E80AE53003CAB0D /* Sean.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sean.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1428193B2E80AE54003CAB0D /* Exceptions for "Sean" folder in "Sean" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 1428192D2E80AE53003CAB0D /* Sean */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		142819302E80AE53003CAB0D /* Sean */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				1428193B2E80AE54003CAB0D /* Exceptions for "Sean" folder in "Sean" target */,
-			);
 			path = Sean;
 			sourceTree = "<group>";
 		};
