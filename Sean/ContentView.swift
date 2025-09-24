@@ -3,15 +3,9 @@
 //  Sean
 //
 //  Created by Sean Wirkus on 9/21/25.
-//            .navigationDestination(item: $selectedCourse) { course in
-                CourseDetailView(course: course)
-            }
-            .sheet(isPresented: $showingAddCourseSheet) {
-                AddCourseSheet { name, description, color in
-                    let newCourse = Course(name: name, detail: description, color: color)
-                    modelContext.insert(newCourse)
-                }
-            }SwiftUI
+//
+
+import SwiftUI
 import SwiftData
 
 struct ContentView: View {
@@ -33,7 +27,7 @@ struct ContentView: View {
                 VStack(spacing: 20) {
                     // Header
                     HStack {
-                        Text("My Classes")
+                        Text("My Courses")
                             .font(.largeTitle.bold())
                             .foregroundStyle(.primary)
                         Spacer()
@@ -47,7 +41,7 @@ struct ContentView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
 
-                    // Class cards grid
+                    // Course cards grid
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 16)], spacing: 16) {
                             ForEach(courses) { course in
@@ -69,7 +63,7 @@ struct ContentView: View {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.largeTitle)
                                             .foregroundStyle(.secondary)
-                                        Text("Add Class")
+                                        Text("Add Course")
                                             .font(.headline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -82,13 +76,13 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationDestination(item: $selectedClass) { classItem in
-                ClassDetailView(classItem: classItem)
+            .navigationDestination(item: $selectedCourse) { course in
+                CourseDetailView(course: course)
             }
-            .sheet(isPresented: $showingAddClassSheet) {
-                AddClassSheet { name, description, color in
-                    let newClass = Class(name: name, description: description, color: color)
-                    modelContext.insert(newClass)
+            .sheet(isPresented: $showingAddCourseSheet) {
+                AddCourseSheet { name, description, color in
+                    let newCourse = Course(name: name, detail: description, color: color)
+                    modelContext.insert(newCourse)
                 }
             }
             .sheet(isPresented: $showingCalendar) {
