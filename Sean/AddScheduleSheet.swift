@@ -135,7 +135,6 @@ struct AddScheduleSheet: View {
             }
         }
     }
-// ...existing code...
     
     private func toggleWeekday(_ day: Int) {
         if selectedWeekdays.contains(day) {
@@ -149,22 +148,6 @@ struct AddScheduleSheet: View {
         let symbolIndex = (weekday + 5) % 7 // convert 1=Sun to Sunday symbol index 0
         let symbols = Calendar.current.shortWeekdaySymbols
         return symbols[symbolIndex]
-    }
-    
-    private func combine(date: Date, time: Date) -> Date {
-        let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-        let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: time)
-        
-        var combined = DateComponents()
-        combined.year = dateComponents.year
-        combined.month = dateComponents.month
-        combined.day = dateComponents.day
-        combined.hour = timeComponents.hour
-        combined.minute = timeComponents.minute
-        combined.second = timeComponents.second
-        
-        return calendar.date(from: combined) ?? date
     }
     
     private func createLectures() {
@@ -193,7 +176,14 @@ struct AddScheduleSheet: View {
                 let hour = calendar.component(.hour, from: time)
                 let minute = calendar.component(.minute, from: time)
                 // For now, set endHour/endMinute to startHour/startMinute (single time)
-                let meeting = CourseMeeting(dayOfWeek: weekday, startHour: hour, startMinute: minute, endHour: hour, endMinute: minute, course: self.course)
+                let meeting = CourseMeeting(
+                    dayOfWeek: weekday,
+                    startHour: hour,
+                    startMinute: minute,
+                    endHour: hour,
+                    endMinute: minute,
+                    course: self.course
+                )
                 modelContext.insert(meeting)
                 self.course.meetings.append(meeting)
             }
@@ -207,8 +197,8 @@ struct AddScheduleSheet: View {
             // handle error silently, or add alert if desired
         }
 
-    self.onComplete()
-    dismiss()
+        self.onComplete()
+        dismiss()
     }
     
     private func regenerateLectures() {

@@ -768,7 +768,7 @@ struct CourseEditSheet: View {
         Section(header: Text("Course Details")) {
             HStack {
                 Picker("Term Type", selection: $termType) {
-                    ForEach(termTypes, id: \ .self) { term in
+                    ForEach(termTypes, id: \.self) { term in
                         Text(term)
                     }
                 }
