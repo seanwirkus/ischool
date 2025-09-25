@@ -11,7 +11,6 @@ struct ContentView: View {
 
     @State private var showingAddCourseSheet = false
     @State private var selectedCourse: Course? = nil
-    @State private var showingCalendar = false
     @State private var showingQuickNoteSheet = false
     @State private var showingQuickFileImporter = false
     @State private var showingQuickAssignmentSheet = false
@@ -43,12 +42,6 @@ struct ContentView: View {
                             QuickAddButton(icon: "checkmark.circle", title: "Assignment") {
                                 showingQuickAssignmentSheet = true
                             }
-                            Button(action: { showingCalendar = true }) {
-                                Image(systemName: "calendar")
-                                    .font(.title2)
-                                    .foregroundStyle(.primary)
-                            }
-                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -120,9 +113,6 @@ struct ContentView: View {
                     generateLectures(for: newCourse, meetings: meetings)
                 }
             }
-            .sheet(isPresented: $showingCalendar) {
-                CalendarView()
-            }
             .sheet(isPresented: $showingQuickNoteSheet) {
                 QuickNoteSheet(courses: courses) { content, course in
                     let targetLecture = findNearestLecture(for: course)
@@ -188,7 +178,12 @@ struct ContentView: View {
             let weekday = calendar.component(.weekday, from: date)
             for meeting in meetings where meeting.dayOfWeek == weekday {
                 let startDateTime = calendar.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: date)!
-                let lecture = Lecture(title: "Lecture", date: startDateTime, course: course)
+                let lecture = Lecture(
+                    title: meeting.meetingType,
+                    date: startDateTime,
+                    meetingType: meeting.meetingType,
+                    course: course
+                )
                 modelContext.insert(lecture)
             }
             date = calendar.date(byAdding: .day, value: 1, to: date)!
@@ -203,21 +198,34 @@ struct QuickAddButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.caption)
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: icon)
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
                 Text(title)
-                    .font(.caption2)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.primary)
             }
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .frame(minWidth: 96)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.platformCardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.accentColor.opacity(0.12))
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 
@@ -298,7 +306,7 @@ struct WeekScheduleView: View {
                             .foregroundColor(.secondary)
                             .padding(.vertical, 24)
                             .frame(maxWidth: .infinity)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.windowBackgroundColor)))
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
                     } else {
                         ForEach(groupedLectures.keys.sorted(), id: \ .self) { date in
                             VStack(alignment: .leading, spacing: 8) {
@@ -306,23 +314,50 @@ struct WeekScheduleView: View {
                                     .font(.headline)
                                     .foregroundColor(.accentColor)
                                 ForEach(groupedLectures[date] ?? []) { lecture in
-                                    HStack {
-                                        Circle()
-                                            .fill(lecture.course?.colorValue ?? .blue)
-                                            .frame(width: 10, height: 10)
-                                        Text(lecture.title)
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                        Text(lecture.date.formatted(.dateTime.hour().minute()))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(alignment: .center, spacing: 12) {
+                                            Circle()
+                                                .fill(lecture.course?.colorValue ?? .accentColor)
+                                                .frame(width: 12, height: 12)
+
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(lecture.course?.name ?? "Course")
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundStyle(.primary)
+                                                Text(meetingLabel(for: lecture))
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+
+                                            Spacer()
+
+                                            Text(lecture.date.formatted(.dateTime.hour().minute()))
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(.primary)
+                                        }
+
+                                        if lectureTitleIsDistinct(lecture) {
+                                            Text(lecture.title)
+                                                .font(.footnote)
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        if let notes = lecture.notes, !notes.isEmpty {
+                                            Text(notes)
+                                                .font(.footnote)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(2)
+                                        }
                                     }
-                                    .padding(.vertical, 4)
+                                    .padding(12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.platformChipBackground)
+                                    )
                                 }
                             }
                             .padding()
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.windowBackgroundColor)))
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
                         }
                     }
                 }
@@ -337,6 +372,16 @@ struct WeekScheduleView: View {
         return Dictionary(grouping: allLectures) { lecture in
             calendar.startOfDay(for: lecture.date)
         }
+    }
+
+    private func lectureTitleIsDistinct(_ lecture: Lecture) -> Bool {
+        let meetingLabel = meetingLabel(for: lecture)
+        return lecture.title.trimmingCharacters(in: .whitespacesAndNewlines) != meetingLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func meetingLabel(for lecture: Lecture) -> String {
+        let trimmed = (lecture.meetingType ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? lecture.title : trimmed
     }
 }
 

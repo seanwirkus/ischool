@@ -17,15 +17,26 @@ final class CourseMeeting {
     var startMinute: Int
     var endHour: Int
     var endMinute: Int
+    var meetingType: String
     @Relationship var course: Course?
 
-    init(id: UUID = UUID(), dayOfWeek: Int, startHour: Int, startMinute: Int, endHour: Int, endMinute: Int, course: Course? = nil) {
+    init(
+        id: UUID = UUID(),
+        dayOfWeek: Int,
+        startHour: Int,
+        startMinute: Int,
+        endHour: Int,
+        endMinute: Int,
+        meetingType: String = "Class",
+        course: Course? = nil
+    ) {
         self.id = id
         self.dayOfWeek = dayOfWeek
         self.startHour = startHour
         self.startMinute = startMinute
         self.endHour = endHour
         self.endMinute = endMinute
+        self.meetingType = meetingType
         self.course = course
     }
 }

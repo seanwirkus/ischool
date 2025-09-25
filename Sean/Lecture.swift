@@ -13,15 +13,24 @@ final class Lecture {
     var id: UUID
     var title: String
     var date: Date
+    var meetingType: String?
     var notes: String?
     @Relationship(deleteRule: .cascade, inverse: \LectureNote.lecture) var lectureNotes: [LectureNote] = []
     @Relationship(deleteRule: .cascade, inverse: \LectureFile.lecture) var lectureFiles: [LectureFile] = []
     @Relationship var course: Course?
 
-    init(id: UUID = UUID(), title: String, date: Date, notes: String? = nil, course: Course? = nil) {
+    init(
+        id: UUID = UUID(),
+        title: String,
+        date: Date,
+        meetingType: String? = nil,
+        notes: String? = nil,
+        course: Course? = nil
+    ) {
         self.id = id
         self.title = title
         self.date = date
+        self.meetingType = meetingType
         self.notes = notes
         self.course = course
     }

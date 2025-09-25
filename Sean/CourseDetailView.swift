@@ -8,21 +8,7 @@
 import SwiftUI
 import SwiftData
 import Foundation
-#if os(macOS)
-import AppKit
-#endif
 import UniformTypeIdentifiers
-
-// Cross-platform helpers
-fileprivate extension Color {
-    static var capsuleBackground: Color {
-        #if os(macOS)
-        return Color(NSColor.controlBackgroundColor)
-        #else
-        return Color(.systemGray5)
-        #endif
-    }
-}
 
 struct CourseDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -35,6 +21,11 @@ struct CourseDetailView: View {
     @State private var selectedTab = 0
     @State private var showingSyllabusView = false
     @State private var showingEditCourseSheet = false
+    @State private var activeLectureForMaterial: Lecture? = nil
+    @State private var noteTargetLecture: Lecture? = nil
+    @State private var fileTargetLecture: Lecture? = nil
+    @State private var showingMaterialOptions = false
+    @State private var showingLectureFileImporter = false
 
     var body: some View {
         ZStack {
@@ -210,6 +201,53 @@ struct CourseDetailView: View {
                 showingEditCourseSheet = false
             }
         }
+        .sheet(item: $noteTargetLecture) { lecture in
+            LectureNoteComposerSheet(lecture: lecture) { noteText in
+                let newNote = LectureNote(content: noteText, lecture: lecture)
+                modelContext.insert(newNote)
+                activeLectureForMaterial = nil
+                noteTargetLecture = nil
+            }
+        }
+        .fileImporter(isPresented: $showingLectureFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+            guard let lecture = fileTargetLecture else { return }
+            switch result {
+            case .success(let urls):
+                for url in urls {
+                    do {
+                        let data = try Data(contentsOf: url)
+                        let newFile = LectureFile(filename: url.lastPathComponent, fileData: data, lecture: lecture)
+                        modelContext.insert(newFile)
+                    } catch {
+                        print("Failed to attach file: \(error)")
+                    }
+                }
+            case .failure(let error):
+                print("File import failed: \(error)")
+            }
+            fileTargetLecture = nil
+            activeLectureForMaterial = nil
+        }
+        .confirmationDialog(
+            "Add material",
+            isPresented: $showingMaterialOptions,
+            presenting: activeLectureForMaterial
+        ) { lecture in
+            Button("Add Note") {
+                noteTargetLecture = lecture
+                fileTargetLecture = nil
+            }
+            Button("Attach File") {
+                fileTargetLecture = lecture
+                showingLectureFileImporter = true
+                noteTargetLecture = nil
+            }
+            Button("Cancel", role: .cancel) {
+                activeLectureForMaterial = nil
+            }
+        } message: { lecture in
+            Text("Link new material to \(lecture.title)")
+        }
     }
 
     // MARK: - Lectures grid section with 2 columns and add material button on each card
@@ -230,7 +268,8 @@ struct CourseDetailView: View {
             } else {
                 ForEach(sortedLectures) { lecture in
                     LectureGridCardView(lecture: lecture) {
-                        // Action for add material button
+                        activeLectureForMaterial = lecture
+                        showingMaterialOptions = true
                     }
                     .onTapGesture {
                         selectedLecture = lecture
@@ -274,20 +313,103 @@ struct LectureGridCardView: View {
     let addMaterialAction: () -> Void
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                Circle()
+                    .fill((lecture.course?.colorValue ?? .accentColor))
+                    .frame(width: 14, height: 14)
 
-            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(lecture.course?.name ?? "Course")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(meetingLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Button {
+                    addMaterialAction()
+                } label: {
+                    Label("Add material", systemImage: "paperclip")
+                        .labelStyle(.iconOnly)
+                        .font(.title3)
+                        .foregroundStyle(Color.accentColor)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add material to \(lecture.course?.name ?? "course")")
+            }
+
+            if hasDistinctTitle {
                 Text(lecture.title)
                     .font(.headline)
                     .foregroundStyle(.primary)
                     .lineLimit(2)
+            }
 
+            HStack(spacing: 12) {
                 HStack(spacing: 6) {
                     Image(systemName: "calendar")
                         .foregroundStyle(.secondary)
+                    Text(lecture.date, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(lecture.date, style: .time)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let notes = lecture.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+        }
+        .padding(16)
+        .frame(minHeight: 150)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.platformCardBackground)
+        )
+    }
+
+    private var hasDistinctTitle: Bool {
+        return lecture.title.trimmingCharacters(in: .whitespacesAndNewlines) != meetingLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var meetingLabel: String {
+        let trimmed = (lecture.meetingType ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? lecture.title : trimmed
+    }
+}
+
+// MARK: - LectureNoteComposerSheet
+struct LectureNoteComposerSheet: View {
+    let lecture: Lecture
+    let onSave: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var noteText: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Lecture") {
+                    Text(lecture.title)
+                        .font(.subheadline.weight(.semibold))
                     Text(lecture.date, style: .date)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -296,35 +418,26 @@ struct LectureGridCardView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if let notes = lecture.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                HStack {
-                    Spacer()
-                    Button {
-                        addMaterialAction()
-                    } label: {
-                        Image(systemName: "paperclip")
-                            .font(.title3)
-                            .foregroundStyle(Color.accentColor)
-                            .padding(6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.accentColor.opacity(0.15))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add Material")
+                Section("Quick Note") {
+                    TextField("Capture key points...", text: $noteText, axis: .vertical)
+                        .lineLimit(3...8)
                 }
             }
-            .padding(16)
-            .frame(minHeight: 140) // Ensure minimum height for consistency
+            .navigationTitle("New Lecture Note")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let trimmed = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        onSave(trimmed)
+                        dismiss()
+                    }
+                    .disabled(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
         }
     }
 }
@@ -338,20 +451,27 @@ struct CourseMiniCalendarView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
                 ForEach(course.lectures.sorted(by: { $0.date < $1.date })) { lecture in
-                    VStack(spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(lecture.date, style: .date)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Text(lecture.title)
-                            .font(.caption)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .frame(width: 100)
+
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(course.colorValue)
+                                .frame(width: 8, height: 8)
+                            Text(meetingLabel(for: lecture))
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(8)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(course.colorValue.opacity(0.2))
+                            .fill(course.colorValue.opacity(0.18))
                     )
                 }
             }
@@ -414,6 +534,11 @@ struct SyllabusListView: View {
             }
         }
     }
+}
+
+private func meetingLabel(for lecture: Lecture) -> String {
+    let trimmed = (lecture.meetingType ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? lecture.title : trimmed
 }
 
 // MARK: - TabButton (unchanged except updated for two tabs)
@@ -599,45 +724,59 @@ struct CourseEditSheet: View {
     @Bindable var course: Course
     var modelContext: ModelContext
     var onDismiss: () -> Void
+
     @Environment(\.dismiss) private var dismiss
-    @State private var showDeleteAlert = false
-    
-    @State private var selectedDays: Set<Int> = []
-    @State private var meetingTimes: [Int: (start: Date, end: Date)] = [:]
-    @State private var isAsynchronous = false
-    @State private var termType: String = "Semester"
-    @State private var termStartDate: Date = Date()
-    @State private var termEndDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
-    
+
+    private struct MeetingConfiguration {
+        var start: Date
+        var end: Date
+        var type: String
+    }
+
     private let weekdayOrder: [(label: String, index: Int)] = [
         ("Mon", 2), ("Tue", 3), ("Wed", 4), ("Thu", 5), ("Fri", 6), ("Sat", 7), ("Sun", 1)
     ]
+    private let meetingTypeOptions = ["Class", "Discussion", "Lab", "Workshop", "Study Session", "Office Hours"]
     private let termTypes = ["Semester", "Quarter"]
-    
+    private let defaultMeetingDuration: TimeInterval = 75 * 60
+
+    @State private var showDeleteAlert = false
+    @State private var didLoadInitialState = false
+
+    @State private var name: String = ""
+    @State private var detail: String = ""
+    @State private var unitsText: String = ""
+    @State private var selectedColor: Color = .accentColor
+    @State private var termType: String = "Semester"
+    @State private var termStartDate: Date = Date()
+    @State private var termEndDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+    @State private var isAsynchronous: Bool = false
+    @State private var selectedDays: Set<Int> = []
+    @State private var meetingConfigurations: [Int: MeetingConfiguration] = [:]
+
+    private var orderedSelectedDays: [(label: String, index: Int)] {
+        weekdayOrder.filter { selectedDays.contains($0.index) }
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                courseInfoSection
-                courseDetailsSection
-                meetingScheduleSection
-                dangerZoneSection
-            }
-            .navigationTitle("Edit Course")
-            .onAppear {
-                // Initialize form values from course
-                selectedDays = Set(course.meetings.map { $0.dayOfWeek })
-                isAsynchronous = course.meetings.isEmpty
-                termType = course.termType ?? "Semester"
-                termStartDate = course.termStartDate ?? Date()
-                termEndDate = course.termEndDate ?? Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
-                
-                // Initialize meeting times
-                for meeting in course.meetings {
-                    let startDate = Calendar.current.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: Date()) ?? Date()
-                    let endDate = Calendar.current.date(bySettingHour: meeting.endHour, minute: meeting.endMinute, second: 0, of: Date()) ?? Date()
-                    meetingTimes[meeting.dayOfWeek] = (start: startDate, end: endDate)
+            ScrollView {
+                VStack(spacing: 24) {
+                    identityCard
+                    schedulingCard
+                    previewCard
+                    dangerZoneCard
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 32)
             }
+            .background(
+                Color.clear
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea()
+            )
+            .navigationTitle("Edit Course")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -646,225 +785,508 @@ struct CourseEditSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("Save") {
                         saveCourse()
                     }
+                    .disabled(isSaveDisabled)
                 }
             }
-            .alert("Delete Course?", isPresented: $showDeleteAlert, actions: {
+            .onAppear(perform: loadInitialState)
+            .alert("Delete Course?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
                     modelContext.delete(course)
                     onDismiss()
                     dismiss()
                 }
                 Button("Cancel", role: .cancel) {}
-            }, message: {
+            } message: {
                 Text("This action cannot be undone.")
-            })
+            }
         }
     }
 
-    private var courseInfoSection: some View {
-        Section(header: Text("Course Info")) {
-            TextField("Course Name", text: $course.name)
-                .font(.title3)
-                .padding(.vertical, 2)
-            TextField("Description", text: Binding(
-                get: { course.detail ?? "" },
-                set: { course.detail = $0.isEmpty ? nil : $0 }
-            ))
-                .font(.body)
-                .foregroundColor(.secondary)
-                .padding(.vertical, 2)
-        }
-    }
+    private var identityCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(selectedColor)
+                        .frame(width: 54, height: 54)
+                        .overlay(
+                            Circle()
+                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                        )
+                    Text(courseInitial)
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
+                }
 
-    private var courseDetailsSection: some View {
-        Section(header: Text("Course Details")) {
-            HStack {
-                Picker("Term Type", selection: $termType) {
-                    ForEach(termTypes, id: \ .self) { term in
-                        Text(term)
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Course name", text: $name)
+                        .font(.title3.weight(.semibold))
+                        .textInputAutocapitalization(.words)
+
+                    TextField("Short description", text: $detail, axis: .vertical)
+                        .lineLimit(1...3)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 12) {
+                        Picker("Term", selection: $termType) {
+                            ForEach(termTypes, id: \.self) { term in
+                                Text(term)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        TextField("Units", text: $unitsText)
+                            .frame(width: 70)
+                            .multilineTextAlignment(.center)
+                            .textFieldStyle(.roundedBorder)
                     }
                 }
-                .pickerStyle(.segmented)
-                Spacer()
-                TextField("Units", value: $course.units, formatter: NumberFormatter())
-                    .frame(width: 80)
-                    .textFieldStyle(.roundedBorder)
             }
-            .padding(.vertical, 2)
-            
-            HStack(spacing: 16) {
-                DatePicker("Start", selection: $termStartDate, displayedComponents: .date)
-                DatePicker("End", selection: $termEndDate, in: termStartDate..., displayedComponents: .date)
-            }
-            .padding(.vertical, 2)
-            
-            ColorPicker("Course Color", selection: Binding<Color>(
-                get: { Color(hex: course.color) ?? .blue },
-                set: { newColor in
-                    course.color = newColor.toHexString() ?? course.color
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Term timeline")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 12) {
+                    DatePicker("Start", selection: $termStartDate, displayedComponents: .date)
+                    DatePicker("End", selection: $termEndDate, in: termStartDate..., displayedComponents: .date)
                 }
-            ))
-                .padding(.vertical, 2)
+
+                HStack {
+                    Label("Course color", systemImage: "paintpalette")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    ColorPicker("Course color", selection: $selectedColor, supportsOpacity: false)
+                        .labelsHidden()
+                }
+            }
         }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.platformCardBackground)
+        )
     }
 
-    private var meetingScheduleSection: some View {
-        Section(header: Text("Meeting Schedule")) {
-            Toggle("Asynchronous Course", isOn: $isAsynchronous)
-                .padding(.vertical, 2)
+    private var schedulingCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Label("Meeting pattern", systemImage: "calendar.badge.clock")
+                    .font(.headline)
+                Spacer()
+                if !orderedSelectedDays.isEmpty && !isAsynchronous {
+                    Text(summaryHeadline)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Toggle("This course doesn't meet at a regular time", isOn: $isAsynchronous)
+                .toggleStyle(.switch)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
             if !isAsynchronous {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Meeting Days")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    Text("Select the days we meet")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
-                        ForEach(weekdayOrder, id: \.index) { weekday in
-                            Button(action: {
-                                toggleWeekday(weekday.index)
-                            }) {
-                                Text(weekday.label)
-                                    .font(.caption)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
+                        ForEach(weekdayOrder, id: \.index) { day in
+                            let isSelected = selectedDays.contains(day.index)
+                            Button {
+                                toggleDaySelection(day.index)
+                            } label: {
+                                Text(day.label)
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
-                                    .padding(.horizontal, 12)
-                                    .background(selectedDays.contains(weekday.index) ? Color.accentColor.opacity(0.2) : Color.capsuleBackground)
-                                    .foregroundColor(selectedDays.contains(weekday.index) ? Color.accentColor : Color.primary)
-                                    .clipShape(Capsule())
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(isSelected ? selectedColor.opacity(0.18) : Color.platformChipBackground)
+                                    )
+                                    .foregroundStyle(isSelected ? selectedColor : .primary)
                             }
                             .buttonStyle(.plain)
                         }
                     }
 
-                    if !selectedDays.isEmpty {
-                        ForEach(Array(selectedDays).sorted(), id: \.self) { dayIndex in
-                            MeetingTimeRow(dayIndex: dayIndex,
-                                           label: weekdayLabel(for: dayIndex),
-                                           start: meetingTimes[dayIndex]?.start ?? defaultTime,
-                                           end: meetingTimes[dayIndex]?.end ?? Calendar.current.date(byAdding: .hour, value: 1, to: defaultTime) ?? defaultTime,
-                                           onStartChange: { newTime in
-                                               let endTime = meetingTimes[dayIndex]?.end ?? Calendar.current.date(byAdding: .hour, value: 1, to: newTime) ?? newTime
-                                               meetingTimes[dayIndex] = (start: newTime, end: endTime)
-                                           },
-                                           onEndChange: { newTime in
-                                               let startTime = meetingTimes[dayIndex]?.start ?? defaultTime
-                                               meetingTimes[dayIndex] = (start: startTime, end: newTime)
-                                           })
+                    if orderedSelectedDays.isEmpty {
+                        Text("Choose at least one day to configure time and type.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                    } else {
+                        VStack(spacing: 16) {
+                            ForEach(orderedSelectedDays, id: \.index) { day in
+                                meetingEditorCard(for: day.index, label: day.label)
+                            }
                         }
                     }
                 }
-                .padding(.vertical, 2)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.platformCardBackground)
+        )
+    }
+
+    private func meetingEditorCard(for dayIndex: Int, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("\(label) session")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(currentTypeLabel(for: dayIndex))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 12) {
+                DatePicker(
+                    "Start",
+                    selection: startBinding(for: dayIndex),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+
+                Image(systemName: "arrow.right")
+                    .foregroundStyle(.secondary)
+
+                DatePicker(
+                    "End",
+                    selection: endBinding(for: dayIndex),
+                    displayedComponents: .hourAndMinute
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Meeting time for \(label)")
+            .accessibilityValue(formattedSummary(for: dayIndex))
+
+            Picker("Session type", selection: typeBinding(for: dayIndex)) {
+                ForEach(meetingTypeOptions, id: \.self) { option in
+                    Text(option).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.platformChipBackground)
+        )
+    }
+
+    private var previewCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Label("Meeting preview", systemImage: "list.bullet.rectangle")
+                    .font(.headline)
+                Spacer()
+            }
+
+            if isAsynchronous {
+                Text("No scheduled meetings — use this course for independent work or online modules.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if orderedSelectedDays.isEmpty {
+                Text("Add at least one meeting day to see the weekly outline.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(orderedSelectedDays, id: \.index) { day in
+                    HStack(alignment: .top, spacing: 12) {
+                        Circle()
+                            .fill(selectedColor)
+                            .frame(width: 10, height: 10)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(day.label)")
+                                .font(.subheadline.weight(.semibold))
+                            Text(formattedSummary(for: day.index))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.platformCardBackground)
+        )
+    }
+
+    private var dangerZoneCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Danger zone")
+                .font(.headline)
+                .foregroundStyle(.red)
+            Text("Deleting a course will remove all of its lectures, materials, and assignments.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Button(role: .destructive) {
+                showDeleteAlert = true
+            } label: {
+                Label("Delete course", systemImage: "trash")
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.platformCardBackground)
+        )
+    }
+
+    private var courseInitial: String {
+        if let first = name.trimmingCharacters(in: .whitespacesAndNewlines).first {
+            return String(first).uppercased()
+        }
+        return String(course.name.prefix(1)).uppercased()
+    }
+
+    private var summaryHeadline: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        let summaries = orderedSelectedDays.compactMap { day -> String? in
+            guard let config = meetingConfigurations[day.index] else { return nil }
+            return "\(day.label) \(formatter.string(from: config.start))"
+        }
+        return summaries.joined(separator: " · ")
+    }
+
+    private var isSaveDisabled: Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return true }
+
+        if !isAsynchronous {
+            guard !orderedSelectedDays.isEmpty else { return true }
+            for day in orderedSelectedDays {
+                guard let config = meetingConfigurations[day.index] else { return true }
+                if config.end <= config.start { return true }
+            }
+        }
+
+        return false
+    }
+
+    private func loadInitialState() {
+        guard !didLoadInitialState else { return }
+        didLoadInitialState = true
+
+        name = course.name
+        detail = course.detail ?? ""
+        unitsText = course.units.map { String($0) } ?? ""
+        selectedColor = Color(hex: course.color) ?? .accentColor
+        termType = course.termType ?? "Semester"
+        termStartDate = course.termStartDate ?? Date()
+        termEndDate = course.termEndDate ?? Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+
+        let meetings = course.meetings
+        isAsynchronous = meetings.isEmpty
+        selectedDays = Set(meetings.map { $0.dayOfWeek })
+
+        for meeting in meetings {
+            let start = Calendar.current.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: Date()) ?? Date()
+            let end = Calendar.current.date(bySettingHour: meeting.endHour, minute: meeting.endMinute, second: 0, of: Date()) ?? start.addingTimeInterval(defaultMeetingDuration)
+        meetingConfigurations[meeting.dayOfWeek] = MeetingConfiguration(
+            start: start,
+            end: end,
+            type: sanitizedType(meeting.meetingType)
+        )
+        }
+    }
+
+    private func toggleDaySelection(_ dayIndex: Int) {
+        if selectedDays.contains(dayIndex) {
+            selectedDays.remove(dayIndex)
+            meetingConfigurations[dayIndex] = nil
+        } else {
+            selectedDays.insert(dayIndex)
+            if meetingConfigurations[dayIndex] == nil {
+                let start = defaultStart
+                meetingConfigurations[dayIndex] = MeetingConfiguration(
+                    start: start,
+                    end: defaultEnd(from: start),
+                    type: meetingTypeOptions.first ?? "Class"
+                )
             }
         }
     }
 
-    private var dangerZoneSection: some View {
-        Section(header: Text("Danger Zone")) {
-            Button {
-                showDeleteAlert = true
-            } label: {
-                Label("Delete Course", systemImage: "trash")
-                    .foregroundColor(.red)
+    private func startBinding(for dayIndex: Int) -> Binding<Date> {
+        Binding<Date>(
+            get: { meetingConfigurations[dayIndex]?.start ?? defaultStart },
+            set: { newValue in
+                var config = meetingConfigurations[dayIndex] ?? MeetingConfiguration(
+                    start: newValue,
+                    end: defaultEnd(from: newValue),
+                    type: meetingTypeOptions.first ?? "Class"
+                )
+                config.start = newValue
+                if config.end <= newValue {
+                    config.end = defaultEnd(from: newValue)
+                }
+                meetingConfigurations[dayIndex] = config
             }
-        }
+        )
     }
-    
-    private var defaultTime: Date {
+
+    private func endBinding(for dayIndex: Int) -> Binding<Date> {
+        Binding<Date>(
+            get: {
+                if let config = meetingConfigurations[dayIndex] {
+                    return config.end
+                }
+                let start = meetingConfigurations[dayIndex]?.start ?? defaultStart
+                return defaultEnd(from: start)
+            },
+            set: { newValue in
+                var config = meetingConfigurations[dayIndex] ?? MeetingConfiguration(
+                    start: defaultStart,
+                    end: newValue,
+                    type: meetingTypeOptions.first ?? "Class"
+                )
+                config.end = newValue
+                if config.end <= config.start {
+                    config.start = Calendar.current.date(byAdding: .minute, value: -Int(defaultMeetingDuration / 60), to: newValue)
+                        ?? newValue.addingTimeInterval(-defaultMeetingDuration)
+                }
+                meetingConfigurations[dayIndex] = config
+            }
+        )
+    }
+
+    private func typeBinding(for dayIndex: Int) -> Binding<String> {
+        Binding<String>(
+            get: { meetingConfigurations[dayIndex]?.type ?? meetingTypeOptions.first ?? "Class" },
+            set: { newValue in
+                var config = meetingConfigurations[dayIndex] ?? MeetingConfiguration(
+                    start: defaultStart,
+                    end: defaultEnd(from: defaultStart),
+                    type: newValue
+                )
+                config.type = newValue
+                meetingConfigurations[dayIndex] = config
+            }
+        )
+    }
+
+    private func currentTypeLabel(for dayIndex: Int) -> String {
+        sanitizedType(meetingConfigurations[dayIndex]?.type ?? meetingTypeOptions.first ?? "Class")
+    }
+
+    private func formattedSummary(for dayIndex: Int) -> String {
+        guard let config = meetingConfigurations[dayIndex] else { return "Time not set" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        let startText = formatter.string(from: config.start)
+        let endText = formatter.string(from: config.end)
+        return "\(sanitizedType(config.type)) • \(startText) – \(endText)"
+    }
+
+    private var defaultStart: Date {
         Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
     }
-    
-    private func toggleWeekday(_ day: Int) {
-        if selectedDays.contains(day) {
-            selectedDays.remove(day)
-            meetingTimes[day] = nil
-        } else {
-            selectedDays.insert(day)
-            meetingTimes[day] = (start: defaultTime, end: Calendar.current.date(byAdding: .hour, value: 1, to: defaultTime) ?? defaultTime)
-        }
+
+    private func defaultEnd(from start: Date) -> Date {
+        Calendar.current.date(byAdding: .minute, value: Int(defaultMeetingDuration / 60), to: start)
+            ?? start.addingTimeInterval(defaultMeetingDuration)
     }
-    
-    private func weekdayLabel(for index: Int) -> String {
-        switch index {
-        case 1: return "Sun"
-        case 2: return "Mon"
-        case 3: return "Tue"
-        case 4: return "Wed"
-        case 5: return "Thu"
-        case 6: return "Fri"
-        case 7: return "Sat"
-        default: return ""
-        }
+
+    private func sanitizedType(_ type: String) -> String {
+        let trimmed = type.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? meetingTypeOptions.first ?? "Class" : trimmed
     }
-    
+
     private func saveCourse() {
-        // Update course properties
+        course.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        course.detail = detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : detail.trimmingCharacters(in: .whitespacesAndNewlines)
+        course.color = selectedColor.toHexString() ?? course.color
         course.termType = termType
         course.termStartDate = termStartDate
         course.termEndDate = termEndDate
-        
-        // Clear existing meetings
+        course.units = Int(unitsText)
+
+        // Remove existing meetings
         for meeting in course.meetings {
             modelContext.delete(meeting)
         }
         course.meetings.removeAll()
-        
-        if !isAsynchronous && !selectedDays.isEmpty {
-            // Create new meetings
-            let newMeetings = selectedDays.compactMap { dayIndex -> CourseMeeting? in
-                guard let times = meetingTimes[dayIndex] else { return nil }
-                let startComponents = Calendar.current.dateComponents([.hour, .minute], from: times.start)
-                let endComponents = Calendar.current.dateComponents([.hour, .minute], from: times.end)
-                return CourseMeeting(
-                    dayOfWeek: dayIndex,
-                    startHour: startComponents.hour ?? 9,
-                    startMinute: startComponents.minute ?? 0,
-                    endHour: endComponents.hour ?? 10,
-                    endMinute: endComponents.minute ?? 0,
-                    course: course
-                )
-            }
-            
-            for meeting in newMeetings {
-                modelContext.insert(meeting)
-                course.meetings.append(meeting)
-            }
-            
-            // Regenerate lectures if there are meetings
-            regenerateLectures()
-        } else {
-            // For asynchronous courses, remove all lectures
+
+        if isAsynchronous {
+            // Remove all lectures for asynchronous courses
             for lecture in course.lectures {
                 modelContext.delete(lecture)
             }
             course.lectures.removeAll()
+        } else {
+            let meetingsToCreate = orderedSelectedDays.compactMap { day -> CourseMeeting? in
+                guard let config = meetingConfigurations[day.index] else { return nil }
+                let startComponents = Calendar.current.dateComponents([.hour, .minute], from: config.start)
+                let endComponents = Calendar.current.dateComponents([.hour, .minute], from: config.end)
+                return CourseMeeting(
+                    dayOfWeek: day.index,
+                    startHour: startComponents.hour ?? 9,
+                    startMinute: startComponents.minute ?? 0,
+                    endHour: endComponents.hour ?? 10,
+                    endMinute: endComponents.minute ?? 0,
+                    meetingType: sanitizedType(config.type),
+                    course: course
+                )
+            }
+
+            for meeting in meetingsToCreate {
+                modelContext.insert(meeting)
+                course.meetings.append(meeting)
+            }
+
+            regenerateLectures()
         }
-        
+
         try? modelContext.save()
         onDismiss()
         dismiss()
     }
 
-    
-    
     private func regenerateLectures() {
-        // Remove existing lectures
         for lecture in course.lectures {
             modelContext.delete(lecture)
         }
         course.lectures.removeAll()
 
-        // Generate new lectures based on meetings
         let calendar = Calendar.current
         var date = termStartDate
-        
-        while date <= termEndDate {
+        let endDate = termEndDate
+
+        while date <= endDate {
             let weekday = calendar.component(.weekday, from: date)
             for meeting in course.meetings where meeting.dayOfWeek == weekday {
                 let startDateTime = calendar.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: date) ?? date
-                let lecture = Lecture(title: "Lecture", date: startDateTime, course: course)
+                let lecture = Lecture(
+                    title: sanitizedType(meeting.meetingType),
+                    date: startDateTime,
+                    meetingType: sanitizedType(meeting.meetingType),
+                    course: course
+                )
                 modelContext.insert(lecture)
                 course.lectures.append(lecture)
             }
@@ -872,35 +1294,6 @@ struct CourseEditSheet: View {
         }
     }
 }
-
-// Helper view to break up complex HStack for meeting times
-struct MeetingTimeRow: View {
-    let dayIndex: Int
-    let label: String
-    let start: Date
-    let end: Date
-    let onStartChange: (Date) -> Void
-    let onEndChange: (Date) -> Void
-
-    var body: some View {
-        VStack {
-            HStack {
-                Text(label)
-                    .font(.subheadline.bold())
-                    .frame(width: 60, alignment: .leading)
-                Spacer()
-                DatePicker("", selection: Binding(get: { start }, set: { onStartChange($0) }), displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                Text("to")
-                DatePicker("", selection: Binding(get: { end }, set: { onEndChange($0) }), displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-            }
-            .padding(.vertical, 4)
-        }
-    }
-}
-
-
 // MARK: - File import handling
 extension CourseDetailView {
     // Handle imported files to create a Syllabus entry.

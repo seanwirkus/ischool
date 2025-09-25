@@ -14,28 +14,11 @@ struct AddScheduleSheet: View {
     @State private var endDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date())!
     @State private var selectedWeekdays: Set<Int> = []
     @State private var time: Date = Date()
-    @State private var title: String = "Lecture"
+    @State private var meetingType: String = "Class"
 
     private let termTypes = ["Semester", "Quarter"]
     private let weekdays = Array(1...7) // 1=Sun ... 7=Sat
-
-    // Helper for macOS systemGray6
-    private var cardBackground: Color {
-        #if os(macOS)
-        return Color(NSColor.windowBackgroundColor)
-        #else
-        return Color(.systemGray6)
-        #endif
-    }
-
-    // Helper for macOS systemGray5
-    private var capsuleBackground: Color {
-        #if os(macOS)
-        return Color(NSColor.controlBackgroundColor)
-        #else
-        return Color(.systemGray5)
-        #endif
-    }
+    private let meetingTypeOptions = ["Class", "Discussion", "Lab", "Workshop", "Study Session", "Office Hours"]
 
     var body: some View {
         NavigationStack {
@@ -53,7 +36,7 @@ struct AddScheduleSheet: View {
                         VStack(spacing: 16) {
                             HStack {
                                 Picker("Term Type", selection: $termType) {
-                                    ForEach(termTypes, id: \ .self) { term in
+                                    ForEach(termTypes, id: \.self) { term in
                                         Text(term)
                                     }
                                 }
@@ -68,7 +51,7 @@ struct AddScheduleSheet: View {
                             }
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
 
                         // Card: Meeting Days & Time
                         VStack(spacing: 16) {
@@ -76,13 +59,13 @@ struct AddScheduleSheet: View {
                                 .font(.headline)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             HStack(spacing: 12) {
-                                ForEach(weekdays, id: \ .self) { day in
+                                ForEach(weekdays, id: \.self) { day in
                                     Button(action: { toggleWeekday(day) }) {
                                         Text(weekdayLabel(day))
                                             .font(.subheadline)
                                             .padding(.vertical, 8)
                                             .padding(.horizontal, 12)
-                                            .background(selectedWeekdays.contains(day) ? Color.accentColor.opacity(0.2) : capsuleBackground)
+                                            .background(selectedWeekdays.contains(day) ? Color.accentColor.opacity(0.2) : Color.platformChipBackground)
                                             .foregroundColor(selectedWeekdays.contains(day) ? Color.accentColor : Color.primary)
                                             .clipShape(Capsule())
                                     }
@@ -98,7 +81,7 @@ struct AddScheduleSheet: View {
                             }
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
 
                         // Card: Schedule Preview
                         VStack(spacing: 12) {
@@ -110,7 +93,7 @@ struct AddScheduleSheet: View {
                                     .foregroundColor(.secondary)
                                     .padding(.vertical, 12)
                             } else {
-                                ForEach(selectedWeekdays.sorted(), id: \ .self) { day in
+                                ForEach(selectedWeekdays.sorted(), id: \.self) { day in
                                     HStack {
                                         Text(weekdayLabel(day))
                                             .font(.subheadline.bold())
@@ -119,24 +102,30 @@ struct AddScheduleSheet: View {
                                         Text(time.formatted(date: .omitted, time: .shortened))
                                             .font(.subheadline)
                                             .foregroundColor(.accentColor)
+                                        Text(meetingType)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
                                     }
                                     .padding(.vertical, 4)
                                 }
                             }
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
 
-                        // Card: Title Prefix
-                        VStack(spacing: 8) {
-                            Text("Title Prefix (optional)")
+                        // Card: Session Type
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Session Type")
                                 .font(.headline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            TextField("Lecture", text: $title)
-                                .textFieldStyle(.roundedBorder)
+                            Picker("Session Type", selection: $meetingType) {
+                                ForEach(meetingTypeOptions, id: \.self) { option in
+                                    Text(option).tag(option)
+                                }
+                            }
+                            .pickerStyle(.segmented)
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
@@ -211,7 +200,15 @@ struct AddScheduleSheet: View {
                 let hour = calendar.component(.hour, from: time)
                 let minute = calendar.component(.minute, from: time)
                 // For now, set endHour/endMinute to startHour/startMinute (single time)
-                let meeting = CourseMeeting(dayOfWeek: weekday, startHour: hour, startMinute: minute, endHour: hour, endMinute: minute, course: self.course)
+                let meeting = CourseMeeting(
+                    dayOfWeek: weekday,
+                    startHour: hour,
+                    startMinute: minute,
+                    endHour: hour,
+                    endMinute: minute,
+                    meetingType: meetingType,
+                    course: self.course
+                )
                 modelContext.insert(meeting)
                 self.course.meetings.append(meeting)
             }
@@ -244,7 +241,7 @@ struct AddScheduleSheet: View {
             let weekday = calendar.component(.weekday, from: date)
             for meeting in self.course.meetings where meeting.dayOfWeek == weekday {
                 let startDateTime = calendar.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: date)!
-                let lecture = Lecture(title: "Lecture", date: startDateTime, course: self.course)
+                let lecture = Lecture(title: meeting.meetingType, date: startDateTime, meetingType: meeting.meetingType, course: self.course)
                 modelContext.insert(lecture)
             }
             date = calendar.date(byAdding: .day, value: 1, to: date)!
