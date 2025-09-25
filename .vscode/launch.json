@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SeanApp}",
+            "name": "Debug PrismIQ",
+            "program": "${workspaceFolder:SeanApp}/.build/debug/PrismIQ",
+            "preLaunchTask": "swift: Build Debug PrismIQ"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SeanApp}",
+            "name": "Release PrismIQ",
+            "program": "${workspaceFolder:SeanApp}/.build/release/PrismIQ",
+            "preLaunchTask": "swift: Build Release PrismIQ"
+        }
+    ]
+}

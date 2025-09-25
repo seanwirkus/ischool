@@ -7,14 +7,30 @@
 
 import SwiftUI
 import SwiftData
+import Foundation
+#if os(macOS)
+import AppKit
+#endif
+import UniformTypeIdentifiers
+
+// Cross-platform helpers
+fileprivate extension Color {
+    static var capsuleBackground: Color {
+        #if os(macOS)
+        return Color(NSColor.controlBackgroundColor)
+        #else
+        return Color(.systemGray5)
+        #endif
+    }
+}
 
 struct CourseDetailView: View {
     @Environment(\.modelContext) private var modelContext
     let course: Course
 
-    @State private var showingAddScheduleSheet = false
     @State private var selectedLecture: Lecture? = nil
     @State private var showingAddSyllabusSheet = false
+    @State private var showingFileImporter = false
     @State private var showingAddAssignmentSheet = false
     @State private var selectedTab = 0
     @State private var showingSyllabusView = false
@@ -72,23 +88,45 @@ struct CourseDetailView: View {
                         .fill(course.colorValue)
                         .frame(width: 20, height: 20)
 
-                    // Syllabus access button (new requirement)
+                    // Syllabus access/upload area
                     if course.syllabi.isEmpty {
+                        // Upload area: a labeled rounded rectangle that triggers a file importer
                         Button {
-                            showingAddSyllabusSheet = true
+                            showingFileImporter = true
                         } label: {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .foregroundColor(.accentColor)
-                                .padding(8)
-                                .background(
-                                    Circle()
-                                        .fill(Color.accentColor.opacity(0.15))
-                                )
+                            HStack(spacing: 10) {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Upload Syllabus")
+                                        .font(.subheadline).fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                    Text("Upload a PDF, text, or image file")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(12)
+                            .frame(minWidth: 140)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1.25)
+                                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.03)))
+                            )
                         }
                         .buttonStyle(.plain)
                         .padding(.leading, 8)
-                        .accessibilityLabel("Add Syllabus")
+                        .accessibilityLabel("Upload Syllabus")
+                        .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [UTType.pdf, UTType.plainText, UTType.rtf, UTType.rtfd, UTType.image], allowsMultipleSelection: false) { result in
+                            switch result {
+                            case .success(let urls):
+                                guard let url = urls.first else { return }
+                                self.handleImportedFile(url: url)
+                            case .failure(let err):
+                                print("File import failed: \(err)")
+                            }
+                        }
                     } else {
                         Button {
                             showingSyllabusView = true
@@ -155,11 +193,6 @@ struct CourseDetailView: View {
         .navigationDestination(item: $selectedLecture) { lecture in
             LectureDetailView(lecture: lecture)
         }
-        .sheet(isPresented: $showingAddScheduleSheet) {
-            AddScheduleSheet(course: course) {
-                // No-op on complete; list will refresh from model
-            }
-        }
         .sheet(isPresented: $showingAddSyllabusSheet) {
             AddSyllabusSheet(course: course) { title, content in
                 let newSyllabus = Syllabus(title: title, content: content, course: course)
@@ -190,9 +223,9 @@ struct CourseDetailView: View {
                 EmptyStateView(
                     icon: "calendar.badge.plus",
                     title: "No Schedule Yet",
-                    message: "Create your meeting schedule to generate lectures.",
-                    action: { showingAddScheduleSheet = true },
-                    actionTitle: "Edit Meetings"
+                    message: "Edit your course to set up the schedule.",
+                    action: { showingEditCourseSheet = true },
+                    actionTitle: "Edit Course"
                 )
             } else {
                 ForEach(sortedLectures) { lecture in
@@ -203,9 +236,6 @@ struct CourseDetailView: View {
                         selectedLecture = lecture
                     }
                 }
-
-                AddButton(action: { showingAddScheduleSheet = true }, title: "Edit Meetings")
-                    .gridCellColumns(2)
             }
         }
     }
@@ -333,6 +363,7 @@ struct CourseMiniCalendarView: View {
 // MARK: - SyllabusListView to view syllabi (used for sheet when tapping View Syllabus button)
 struct SyllabusListView: View {
     let course: Course
+    @State private var selectedSyllabus: Syllabus? = nil
 
     var body: some View {
         NavigationStack {
@@ -342,14 +373,20 @@ struct SyllabusListView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(course.syllabi.sorted(by: { $0.lastModified > $1.lastModified })) { syllabus in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(syllabus.title)
-                                .font(.headline)
-                            Text(syllabus.content)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
+                        Button {
+                            selectedSyllabus = syllabus
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(syllabus.title)
+                                    .font(.headline)
+                                Text(syllabus.content)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -358,6 +395,20 @@ struct SyllabusListView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
                         // Dismiss handled by parent sheet
+                    }
+                }
+            }
+            .sheet(item: $selectedSyllabus) { syllabus in
+                NavigationStack {
+                    ScrollView {
+                        Text(syllabus.content)
+                            .padding()
+                    }
+                    .navigationTitle(syllabus.title)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {}
+                        }
                     }
                 }
             }
@@ -553,64 +604,50 @@ struct CourseEditSheet: View {
     
     @State private var selectedDays: Set<Int> = []
     @State private var meetingTimes: [Int: (start: Date, end: Date)] = [:]
-
+    @State private var isAsynchronous = false
+    @State private var termType: String = "Semester"
+    @State private var termStartDate: Date = Date()
+    @State private var termEndDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+    
+    private let weekdayOrder: [(label: String, index: Int)] = [
+        ("Mon", 2), ("Tue", 3), ("Wed", 4), ("Thu", 5), ("Fri", 6), ("Sat", 7), ("Sun", 1)
+    ]
+    private let termTypes = ["Semester", "Quarter"]
+    
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("Course Name", text: $course.name)
-                        .font(.title3)
-                        .padding(.vertical, 2)
-                    TextField("Description", text: Binding(
-                        get: { course.detail ?? "" },
-                        set: { course.detail = $0.isEmpty ? nil : $0 }
-                    ))
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .padding(.vertical, 2)
-                }
-                Section(header: Text("Details & Appearance")) {
-                    TextField("Units", value: $course.units, formatter: NumberFormatter())
-                        .frame(width: 80)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.vertical, 2)
-                    ColorPicker("Course Color", selection: Binding<Color>(
-                        get: { Color(hex: course.color) ?? .blue },
-                        set: { newColor in
-                            course.color = newColor.toHexString() ?? course.color
-                        }
-                    ))
-                        .padding(.vertical, 2)
-                }
-                Section {
-                    Button {
-                        showDeleteAlert = true
-                    } label: {
-                        Label("Delete Course", systemImage: "trash")
-                            .foregroundColor(.red)
-                    }
-                }
+                courseInfoSection
+                courseDetailsSection
+                meetingScheduleSection
+                dangerZoneSection
             }
             .navigationTitle("Edit Course")
+            .onAppear {
+                // Initialize form values from course
+                selectedDays = Set(course.meetings.map { $0.dayOfWeek })
+                isAsynchronous = course.meetings.isEmpty
+                termType = course.termType ?? "Semester"
+                termStartDate = course.termStartDate ?? Date()
+                termEndDate = course.termEndDate ?? Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+                
+                // Initialize meeting times
+                for meeting in course.meetings {
+                    let startDate = Calendar.current.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: Date()) ?? Date()
+                    let endDate = Calendar.current.date(bySettingHour: meeting.endHour, minute: meeting.endMinute, second: 0, of: Date()) ?? Date()
+                    meetingTimes[meeting.dayOfWeek] = (start: startDate, end: endDate)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        // Update course meetings
-                        let meetings = selectedDays.compactMap { dayIndex -> CourseMeeting? in
-                            guard let times = meetingTimes[dayIndex] else { return nil }
-                            let startComponents = Calendar.current.dateComponents([.hour, .minute], from: times.start)
-                            let endComponents = Calendar.current.dateComponents([.hour, .minute], from: times.end)
-                            return CourseMeeting(
-                                dayOfWeek: dayIndex,
-                                startHour: startComponents.hour ?? 9,
-                                startMinute: startComponents.minute ?? 0,
-                                endHour: endComponents.hour ?? 10,
-                                endMinute: endComponents.minute ?? 0
-                            )
-                        }
-                        course.meetings = meetings
+                    Button("Cancel") {
                         onDismiss()
                         dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        saveCourse()
                     }
                 }
             }
@@ -625,5 +662,280 @@ struct CourseEditSheet: View {
                 Text("This action cannot be undone.")
             })
         }
+    }
+
+    private var courseInfoSection: some View {
+        Section(header: Text("Course Info")) {
+            TextField("Course Name", text: $course.name)
+                .font(.title3)
+                .padding(.vertical, 2)
+            TextField("Description", text: Binding(
+                get: { course.detail ?? "" },
+                set: { course.detail = $0.isEmpty ? nil : $0 }
+            ))
+                .font(.body)
+                .foregroundColor(.secondary)
+                .padding(.vertical, 2)
+        }
+    }
+
+    private var courseDetailsSection: some View {
+        Section(header: Text("Course Details")) {
+            HStack {
+                Picker("Term Type", selection: $termType) {
+                    ForEach(termTypes, id: \ .self) { term in
+                        Text(term)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Spacer()
+                TextField("Units", value: $course.units, formatter: NumberFormatter())
+                    .frame(width: 80)
+                    .textFieldStyle(.roundedBorder)
+            }
+            .padding(.vertical, 2)
+            
+            HStack(spacing: 16) {
+                DatePicker("Start", selection: $termStartDate, displayedComponents: .date)
+                DatePicker("End", selection: $termEndDate, in: termStartDate..., displayedComponents: .date)
+            }
+            .padding(.vertical, 2)
+            
+            ColorPicker("Course Color", selection: Binding<Color>(
+                get: { Color(hex: course.color) ?? .blue },
+                set: { newColor in
+                    course.color = newColor.toHexString() ?? course.color
+                }
+            ))
+                .padding(.vertical, 2)
+        }
+    }
+
+    private var meetingScheduleSection: some View {
+        Section(header: Text("Meeting Schedule")) {
+            Toggle("Asynchronous Course", isOn: $isAsynchronous)
+                .padding(.vertical, 2)
+
+            if !isAsynchronous {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Meeting Days")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
+                        ForEach(weekdayOrder, id: \.index) { weekday in
+                            Button(action: {
+                                toggleWeekday(weekday.index)
+                            }) {
+                                Text(weekday.label)
+                                    .font(.caption)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(selectedDays.contains(weekday.index) ? Color.accentColor.opacity(0.2) : Color.capsuleBackground)
+                                    .foregroundColor(selectedDays.contains(weekday.index) ? Color.accentColor : Color.primary)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if !selectedDays.isEmpty {
+                        ForEach(Array(selectedDays).sorted(), id: \.self) { dayIndex in
+                            MeetingTimeRow(dayIndex: dayIndex,
+                                           label: weekdayLabel(for: dayIndex),
+                                           start: meetingTimes[dayIndex]?.start ?? defaultTime,
+                                           end: meetingTimes[dayIndex]?.end ?? Calendar.current.date(byAdding: .hour, value: 1, to: defaultTime) ?? defaultTime,
+                                           onStartChange: { newTime in
+                                               let endTime = meetingTimes[dayIndex]?.end ?? Calendar.current.date(byAdding: .hour, value: 1, to: newTime) ?? newTime
+                                               meetingTimes[dayIndex] = (start: newTime, end: endTime)
+                                           },
+                                           onEndChange: { newTime in
+                                               let startTime = meetingTimes[dayIndex]?.start ?? defaultTime
+                                               meetingTimes[dayIndex] = (start: startTime, end: newTime)
+                                           })
+                        }
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var dangerZoneSection: some View {
+        Section(header: Text("Danger Zone")) {
+            Button {
+                showDeleteAlert = true
+            } label: {
+                Label("Delete Course", systemImage: "trash")
+                    .foregroundColor(.red)
+            }
+        }
+    }
+    
+    private var defaultTime: Date {
+        Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    }
+    
+    private func toggleWeekday(_ day: Int) {
+        if selectedDays.contains(day) {
+            selectedDays.remove(day)
+            meetingTimes[day] = nil
+        } else {
+            selectedDays.insert(day)
+            meetingTimes[day] = (start: defaultTime, end: Calendar.current.date(byAdding: .hour, value: 1, to: defaultTime) ?? defaultTime)
+        }
+    }
+    
+    private func weekdayLabel(for index: Int) -> String {
+        switch index {
+        case 1: return "Sun"
+        case 2: return "Mon"
+        case 3: return "Tue"
+        case 4: return "Wed"
+        case 5: return "Thu"
+        case 6: return "Fri"
+        case 7: return "Sat"
+        default: return ""
+        }
+    }
+    
+    private func saveCourse() {
+        // Update course properties
+        course.termType = termType
+        course.termStartDate = termStartDate
+        course.termEndDate = termEndDate
+        
+        // Clear existing meetings
+        for meeting in course.meetings {
+            modelContext.delete(meeting)
+        }
+        course.meetings.removeAll()
+        
+        if !isAsynchronous && !selectedDays.isEmpty {
+            // Create new meetings
+            let newMeetings = selectedDays.compactMap { dayIndex -> CourseMeeting? in
+                guard let times = meetingTimes[dayIndex] else { return nil }
+                let startComponents = Calendar.current.dateComponents([.hour, .minute], from: times.start)
+                let endComponents = Calendar.current.dateComponents([.hour, .minute], from: times.end)
+                return CourseMeeting(
+                    dayOfWeek: dayIndex,
+                    startHour: startComponents.hour ?? 9,
+                    startMinute: startComponents.minute ?? 0,
+                    endHour: endComponents.hour ?? 10,
+                    endMinute: endComponents.minute ?? 0,
+                    course: course
+                )
+            }
+            
+            for meeting in newMeetings {
+                modelContext.insert(meeting)
+                course.meetings.append(meeting)
+            }
+            
+            // Regenerate lectures if there are meetings
+            regenerateLectures()
+        } else {
+            // For asynchronous courses, remove all lectures
+            for lecture in course.lectures {
+                modelContext.delete(lecture)
+            }
+            course.lectures.removeAll()
+        }
+        
+        try? modelContext.save()
+        onDismiss()
+        dismiss()
+    }
+
+    
+    
+    private func regenerateLectures() {
+        // Remove existing lectures
+        for lecture in course.lectures {
+            modelContext.delete(lecture)
+        }
+        course.lectures.removeAll()
+
+        // Generate new lectures based on meetings
+        let calendar = Calendar.current
+        var date = termStartDate
+        
+        while date <= termEndDate {
+            let weekday = calendar.component(.weekday, from: date)
+            for meeting in course.meetings where meeting.dayOfWeek == weekday {
+                let startDateTime = calendar.date(bySettingHour: meeting.startHour, minute: meeting.startMinute, second: 0, of: date) ?? date
+                let lecture = Lecture(title: "Lecture", date: startDateTime, course: course)
+                modelContext.insert(lecture)
+                course.lectures.append(lecture)
+            }
+            date = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+        }
+    }
+}
+
+// Helper view to break up complex HStack for meeting times
+struct MeetingTimeRow: View {
+    let dayIndex: Int
+    let label: String
+    let start: Date
+    let end: Date
+    let onStartChange: (Date) -> Void
+    let onEndChange: (Date) -> Void
+
+    var body: some View {
+        VStack {
+            HStack {
+                Text(label)
+                    .font(.subheadline.bold())
+                    .frame(width: 60, alignment: .leading)
+                Spacer()
+                DatePicker("", selection: Binding(get: { start }, set: { onStartChange($0) }), displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                Text("to")
+                DatePicker("", selection: Binding(get: { end }, set: { onEndChange($0) }), displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+
+// MARK: - File import handling
+extension CourseDetailView {
+    // Handle imported files to create a Syllabus entry.
+    fileprivate func handleImportedFile(url: URL) {
+        // Try to read textual content where possible; otherwise use filename as title
+        let title = url.deletingPathExtension().lastPathComponent
+        var content = ""
+
+        // Read data and attempt to decode as text first
+        if let data = try? Data(contentsOf: url) {
+            if let str = String(data: data, encoding: .utf8) {
+                content = str
+            } else {
+                // Try platform-specific image detection
+                #if canImport(UIKit)
+                if let _ = UIImage(data: data) {
+                    content = "Uploaded image: \(title)"
+                } else {
+                    content = "Uploaded file: \(url.lastPathComponent)"
+                }
+                #elseif os(macOS)
+                if let _ = NSImage(data: data) {
+                    content = "Uploaded image: \(title)"
+                } else {
+                    content = "Uploaded file: \(url.lastPathComponent)"
+                }
+                #else
+                content = "Uploaded file: \(url.lastPathComponent)"
+                #endif
+            }
+        }
+
+        // Create Syllabus model and insert
+        let newSyllabus = Syllabus(title: title, content: content, course: course)
+        modelContext.insert(newSyllabus)
+        try? modelContext.save()
     }
 }

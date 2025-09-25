@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import SwiftData
+import Foundation
 
 struct AddAssignmentSheet: View {
     let course: Course
@@ -23,13 +25,13 @@ struct AddAssignmentSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Assignment Details") {
+                Section(header: Text("Assignment Details")) {
                     TextField("Title", text: $title)
                     TextField("Description (optional)", text: $description, axis: .vertical)
                         .lineLimit(3...10)
                 }
 
-                Section("Due Date") {
+                Section(header: Text("Due Date")) {
                     Toggle("Has due date", isOn: $hasDueDate)
                     if hasDueDate {
                         DatePicker("Due Date", selection: Binding(
@@ -39,7 +41,7 @@ struct AddAssignmentSheet: View {
                     }
                 }
 
-                Section("Priority") {
+                Section(header: Text("Priority")) {
                     Picker("Priority", selection: $priority) {
                         ForEach(priorities, id: \.self) { priority in
                             Text(priority)
