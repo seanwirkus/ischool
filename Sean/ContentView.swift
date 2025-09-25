@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+#if os(iOS)
+import VisionKit
+#endif
 
 struct ContentView: View {
     @State private var courseToDelete: Course? = nil
@@ -17,6 +20,11 @@ struct ContentView: View {
     @State private var showingQuickAssignmentSheet = false
     @State private var showingQuickFileCourseSelector = false
     @State private var pendingFileURLs: [URL] = []
+#if os(iOS)
+    @State private var showingDocumentScanner = false
+    @State private var pendingScannedDocuments: [ScannedDocument] = []
+    @State private var scannerErrorMessage: String?
+#endif
 
     var body: some View {
         NavigationStack {
@@ -43,6 +51,13 @@ struct ContentView: View {
                             QuickAddButton(icon: "checkmark.circle", title: "Assignment") {
                                 showingQuickAssignmentSheet = true
                             }
+#if os(iOS)
+                            if supportsDocumentScanner {
+                                QuickAddButton(icon: "doc.text.viewfinder", title: "Scan") {
+                                    showingDocumentScanner = true
+                                }
+                            }
+#endif
                             Button(action: { showingCalendar = true }) {
                                 Image(systemName: "calendar")
                                     .font(.title2)
@@ -149,18 +164,63 @@ struct ContentView: View {
             .sheet(isPresented: $showingQuickFileCourseSelector) {
                 QuickFileCourseSelector(courses: courses) { course in
                     let targetLecture = findNearestLecture(for: course)
-                    for url in pendingFileURLs {
-                        do {
-                            let data = try Data(contentsOf: url)
-                            let filename = url.lastPathComponent
-                            let newFile = LectureFile(filename: filename, fileData: data, lecture: targetLecture)
+#if os(iOS)
+                    if !pendingScannedDocuments.isEmpty {
+                        for document in pendingScannedDocuments {
+                            let newFile = LectureFile(filename: document.filename, fileData: document.data, lecture: targetLecture)
                             modelContext.insert(newFile)
-                        } catch {
-                            print("Error loading file: \(error)")
                         }
+                        pendingScannedDocuments = []
+                    } else {
+                        processImportedFiles(for: targetLecture)
                     }
+#else
+                    processImportedFiles(for: targetLecture)
+#endif
                     pendingFileURLs = []
                 }
+            }
+            .onChange(of: showingQuickFileCourseSelector) { isPresented in
+                if !isPresented {
+                    pendingFileURLs = []
+#if os(iOS)
+                    pendingScannedDocuments = []
+#endif
+                }
+            }
+#if os(iOS)
+            .sheet(isPresented: $showingDocumentScanner) {
+                DocumentScannerSheet { documents in
+                    guard !documents.isEmpty else { return }
+                    pendingScannedDocuments = documents
+                    showingQuickFileCourseSelector = true
+                } onError: { error in
+                    scannerErrorMessage = error.localizedDescription
+                }
+            }
+            .alert("Scanner Error", isPresented: Binding(
+                get: { scannerErrorMessage != nil },
+                set: { if !$0 { scannerErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {
+                    scannerErrorMessage = nil
+                }
+            } message: {
+                Text(scannerErrorMessage ?? "An unknown error occurred.")
+            }
+#endif
+        }
+    }
+
+    private func processImportedFiles(for lecture: Lecture?) {
+        for url in pendingFileURLs {
+            do {
+                let data = try Data(contentsOf: url)
+                let filename = url.lastPathComponent
+                let newFile = LectureFile(filename: filename, fileData: data, lecture: lecture)
+                modelContext.insert(newFile)
+            } catch {
+                print("Error loading file: \(error)")
             }
         }
     }
@@ -195,6 +255,17 @@ struct ContentView: View {
         }
     }
 }
+
+#if os(iOS)
+private extension ContentView {
+    var supportsDocumentScanner: Bool {
+        if #available(iOS 17.0, *) {
+            return VNDocumentCameraViewController.isSupported
+        }
+        return false
+    }
+}
+#endif
 
 struct QuickAddButton: View {
     let icon: String

@@ -26,6 +26,7 @@ A beautiful, liquid glass-themed macOS and iOS app for tracking your courses, le
 - **Smart Defaults**: Automatically links to today's or next lecture
 - Notes timestamped for session history
 - File attachments (documents, images, etc.) stored with lecture context
+- **Document Scanner**: Capture paper syllabi or homework as PDFs and link them instantly to the relevant lecture
 
 ### 📋 **Syllabus Management**
 - Add syllabus items with titles and detailed content
@@ -66,7 +67,7 @@ A beautiful, liquid glass-themed macOS and iOS app for tracking your courses, le
 ### Main Screen
 - Horizontal course chips at the top for quick access
 - Week schedule view showing current week's lectures
-- **Quick action buttons**: Note, File, Assignment (smart defaults to current lecture)
+- **Quick action buttons**: Note, File, Scan, Assignment (smart defaults to current lecture)
 - Calendar button in header for full calendar view
 
 ### Course Detail
@@ -130,6 +131,7 @@ Main Screen
 ├── Quick Actions (Header)
 │   ├── 📝 Note → auto-links to today's/next lecture
 │   ├── 📎 File → select course → auto-links to lecture
+│   ├── 📄 Scan → capture document → auto-converts to PDF → choose course
 │   └── ✅ Assignment → select course → set due date/priority
 ├── + Add Course
 │   ├── Enter name, description, units, color
