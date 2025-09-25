@@ -19,24 +19,6 @@ struct AddScheduleSheet: View {
     private let termTypes = ["Semester", "Quarter"]
     private let weekdays = Array(1...7) // 1=Sun ... 7=Sat
 
-    // Helper for macOS systemGray6
-    private var cardBackground: Color {
-        #if os(macOS)
-        return Color(NSColor.windowBackgroundColor)
-        #else
-        return Color(.systemGray6)
-        #endif
-    }
-
-    // Helper for macOS systemGray5
-    private var capsuleBackground: Color {
-        #if os(macOS)
-        return Color(NSColor.controlBackgroundColor)
-        #else
-        return Color(.systemGray5)
-        #endif
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -53,7 +35,7 @@ struct AddScheduleSheet: View {
                         VStack(spacing: 16) {
                             HStack {
                                 Picker("Term Type", selection: $termType) {
-                                    ForEach(termTypes, id: \ .self) { term in
+                                    ForEach(termTypes, id: \.self) { term in
                                         Text(term)
                                     }
                                 }
@@ -68,7 +50,7 @@ struct AddScheduleSheet: View {
                             }
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
 
                         // Card: Meeting Days & Time
                         VStack(spacing: 16) {
@@ -76,13 +58,13 @@ struct AddScheduleSheet: View {
                                 .font(.headline)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             HStack(spacing: 12) {
-                                ForEach(weekdays, id: \ .self) { day in
+                                ForEach(weekdays, id: \.self) { day in
                                     Button(action: { toggleWeekday(day) }) {
                                         Text(weekdayLabel(day))
                                             .font(.subheadline)
                                             .padding(.vertical, 8)
                                             .padding(.horizontal, 12)
-                                            .background(selectedWeekdays.contains(day) ? Color.accentColor.opacity(0.2) : capsuleBackground)
+                                            .background(selectedWeekdays.contains(day) ? Color.accentColor.opacity(0.2) : Color.platformChipBackground)
                                             .foregroundColor(selectedWeekdays.contains(day) ? Color.accentColor : Color.primary)
                                             .clipShape(Capsule())
                                     }
@@ -98,7 +80,7 @@ struct AddScheduleSheet: View {
                             }
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
 
                         // Card: Schedule Preview
                         VStack(spacing: 12) {
@@ -110,7 +92,7 @@ struct AddScheduleSheet: View {
                                     .foregroundColor(.secondary)
                                     .padding(.vertical, 12)
                             } else {
-                                ForEach(selectedWeekdays.sorted(), id: \ .self) { day in
+                                ForEach(selectedWeekdays.sorted(), id: \.self) { day in
                                     HStack {
                                         Text(weekdayLabel(day))
                                             .font(.subheadline.bold())
@@ -125,7 +107,7 @@ struct AddScheduleSheet: View {
                             }
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
 
                         // Card: Title Prefix
                         VStack(spacing: 8) {
@@ -136,7 +118,7 @@ struct AddScheduleSheet: View {
                                 .textFieldStyle(.roundedBorder)
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(cardBackground))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)

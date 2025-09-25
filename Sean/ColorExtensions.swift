@@ -6,6 +6,12 @@
 //
 
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 extension Color {
     init?(hex: String) {
@@ -41,24 +47,54 @@ extension Color {
         self.init(red: r, green: g, blue: b, opacity: a)
     }
     
-        func toHexString() -> String? {
-            #if canImport(AppKit)
-            let nsColor = NSColor(self)
-            guard let rgbColor = nsColor.usingColorSpace(.deviceRGB) else { return nil }
-            let r = Int(rgbColor.redComponent * 255)
-            let g = Int(rgbColor.greenComponent * 255)
-            let b = Int(rgbColor.blueComponent * 255)
-            return String(format: "#%02X%02X%02X", r, g, b)
-            #elseif canImport(UIKit)
-            let uiColor = UIColor(self)
-            var r: CGFloat = 0
-            var g: CGFloat = 0
-            var b: CGFloat = 0
-            var a: CGFloat = 0
-            guard uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
-            return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
-            #else
-            return nil
-            #endif
-        }
+    func toHexString() -> String? {
+        #if canImport(AppKit)
+        let nsColor = NSColor(self)
+        guard let rgbColor = nsColor.usingColorSpace(.deviceRGB) else { return nil }
+        let r = Int(rgbColor.redComponent * 255)
+        let g = Int(rgbColor.greenComponent * 255)
+        let b = Int(rgbColor.blueComponent * 255)
+        return String(format: "#%02X%02X%02X", r, g, b)
+        #elseif canImport(UIKit)
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        guard uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
+        return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+        #else
+        return nil
+        #endif
+    }
+
+    static var platformCardBackground: Color {
+        #if canImport(UIKit)
+        return Color(UIColor.secondarySystemGroupedBackground)
+        #elseif canImport(AppKit)
+        return Color(nsColor: NSColor.windowBackgroundColor)
+        #else
+        return Color.gray.opacity(0.15)
+        #endif
+    }
+
+    static var platformChipBackground: Color {
+        #if canImport(UIKit)
+        return Color(UIColor.systemGray5)
+        #elseif canImport(AppKit)
+        return Color(nsColor: NSColor.controlBackgroundColor)
+        #else
+        return Color.gray.opacity(0.25)
+        #endif
+    }
+
+    static var platformElevatedBackground: Color {
+        #if canImport(UIKit)
+        return Color(UIColor.tertiarySystemGroupedBackground)
+        #elseif canImport(AppKit)
+        return Color(nsColor: NSColor.underPageBackgroundColor)
+        #else
+        return Color.gray.opacity(0.1)
+        #endif
+    }
 }

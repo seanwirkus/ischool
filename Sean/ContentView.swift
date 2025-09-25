@@ -203,21 +203,34 @@ struct QuickAddButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.caption)
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: icon)
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
                 Text(title)
-                    .font(.caption2)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.primary)
             }
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .frame(minWidth: 96)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.platformCardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.accentColor.opacity(0.12))
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 
@@ -298,7 +311,7 @@ struct WeekScheduleView: View {
                             .foregroundColor(.secondary)
                             .padding(.vertical, 24)
                             .frame(maxWidth: .infinity)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.windowBackgroundColor)))
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
                     } else {
                         ForEach(groupedLectures.keys.sorted(), id: \ .self) { date in
                             VStack(alignment: .leading, spacing: 8) {
@@ -322,7 +335,7 @@ struct WeekScheduleView: View {
                                 }
                             }
                             .padding()
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(NSColor.windowBackgroundColor)))
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
                         }
                     }
                 }
