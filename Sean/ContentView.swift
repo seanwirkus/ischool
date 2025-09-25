@@ -25,25 +25,21 @@ struct ContentView: View {
                 let isCompactWidth = size.width < 700
 
                 ZStack {
-                    Color.clear
-                        .background(.ultraThinMaterial)
+                    HomeBackground()
                         .ignoresSafeArea()
 
-                    VStack(spacing: 20) {
-                        header(isCompactWidth: isCompactWidth)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 32) {
+                            header(isCompactWidth: isCompactWidth)
 
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 24) {
-                                coursesSection(isCompactWidth: isCompactWidth)
+                            coursesSection(isCompactWidth: isCompactWidth)
 
-                                WeekScheduleView(allLectures: lectures)
-                                    .padding(.horizontal, 20)
-                                    .padding(.bottom, 20)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            WeekScheduleView(allLectures: lectures)
+                                .padding(.horizontal, 24)
                         }
+                        .padding(.vertical, 32)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
                 .frame(width: size.width, height: size.height)
             }
@@ -119,47 +115,74 @@ struct ContentView: View {
 
     @ViewBuilder
     private func header(isCompactWidth: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("My Courses")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Today")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(.primary)
+                Text("Stay on top of your courses and upcoming meetings.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 16) {
-                    ForEach(quickActionItems) { item in
-                        QuickAddButton(icon: item.icon, title: item.title, action: item.action)
-                            .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Quick Capture")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        ForEach(quickActionItems) { item in
+                            QuickAddButton(icon: item.icon, title: item.title, action: item.action)
+                                .frame(maxWidth: .infinity)
+                        }
                     }
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], spacing: 12) {
-                    ForEach(quickActionItems) { item in
-                        QuickAddButton(icon: item.icon, title: item.title, action: item.action)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: isCompactWidth ? 140 : 180), spacing: 12)], spacing: 12) {
+                        ForEach(quickActionItems) { item in
+                            QuickAddButton(icon: item.icon, title: item.title, action: item.action)
+                        }
                     }
                 }
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.platformElevatedBackground.opacity(0.95))
+            )
         }
-        .padding(.horizontal, 20)
-        .padding(.top, isCompactWidth ? 20 : 32)
+        .padding(.horizontal, 24)
+        .padding(.top, isCompactWidth ? 8 : 16)
     }
 
     @ViewBuilder
     private func coursesSection(isCompactWidth: Bool) -> some View {
-        ViewThatFits(in: .horizontal) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: isCompactWidth ? 140 : 180), spacing: 16)], alignment: .leading, spacing: 16) {
-                courseChipContent
-            }
-            .padding(.horizontal, 20)
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Courses")
+                .font(.headline)
+                .foregroundStyle(.secondary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+            ViewThatFits(in: .horizontal) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: isCompactWidth ? 180 : 220), spacing: 20)], spacing: 20) {
                     courseChipContent
                 }
-                .padding(.horizontal, 20)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        courseChipContent
+                    }
+                    .padding(.horizontal, 2)
+                }
             }
         }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.platformElevatedBackground.opacity(0.95))
+        )
+        .padding(.horizontal, 24)
     }
 
     @ViewBuilder
@@ -241,46 +264,80 @@ private struct QuickActionItem: Identifiable {
     let action: () -> Void
 }
 
+struct HomeBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        LinearGradient(
+            colors: gradientColors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 0)
+                .fill(colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.03))
+                .blendMode(.overlay)
+        )
+    }
+
+    private var gradientColors: [Color] {
+        if colorScheme == .dark {
+            return [
+                Color(red: 0.07, green: 0.07, blue: 0.08),
+                Color(red: 0.04, green: 0.04, blue: 0.05)
+            ]
+        } else {
+            return [
+                Color(white: 0.97),
+                Color(white: 0.92)
+            ]
+        }
+    }
+}
+
 struct QuickAddButton: View {
     let icon: String
     let title: String
     let action: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: icon)
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
-                        .minimumScaleFactor(0.8)
-                        .lineLimit(1)
-                }
+            VStack(spacing: 12) {
+                Circle()
+                    .strokeBorder(Color.secondary.opacity(0.4), lineWidth: 1)
+                    .frame(width: 48, height: 48)
+                    .overlay(
+                        Image(systemName: icon)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    )
 
                 Text(title)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.85)
             }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .frame(minWidth: 96)
-            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 18)
+            .frame(minWidth: 112)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.platformCardBackground)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.platformCardBackground.opacity(0.9))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.accentColor.opacity(0.12))
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
     }
 }
 
@@ -292,60 +349,117 @@ private extension Date {
 struct CourseChipView: View {
     let course: Course
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                Text(course.name)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+
+                Spacer()
+
                 Circle()
                     .fill(course.colorValue)
-                    .frame(width: 56, height: 56)
-                Text(course.name.prefix(1))
-                    .font(.title2.bold())
-                    .foregroundStyle(.white)
+                    .frame(width: 14, height: 14)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.6), lineWidth: 2)
+                    )
             }
-            Text(course.name)
-                .font(.caption)
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-                .frame(maxWidth: 120)
+
+            if let detail = course.detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+
+            if let nextLecture = upcomingLecture {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Next session")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                    Label {
+                        Text(nextLecture.date.formatted(date: .omitted, time: .shortened))
+                    } icon: {
+                        Image(systemName: "clock")
+                    }
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.primary)
+                }
+            }
         }
-        .padding(.vertical, 8)
-        .frame(maxWidth: 140)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.platformCardBackground.opacity(0.9))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(borderColor, lineWidth: 1)
+        )
+    }
+
+    private var upcomingLecture: Lecture? {
+        let now = Date()
+        return course.lectures
+            .filter { $0.date >= now }
+            .sorted { $0.date < $1.date }
+            .first
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05)
     }
 }
 
 struct AddCourseChipView: View {
     let action: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Circle()
-                                .stroke(.secondary.opacity(0.3), lineWidth: 2)
-                        )
-                    Image(systemName: "plus")
-                        .font(.title2.bold())
-                        .foregroundStyle(.secondary)
-                        .minimumScaleFactor(0.8)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .strokeBorder(Color.secondary.opacity(0.3), lineWidth: 1.5)
+                            .frame(width: 28, height: 28)
+
+                        Image(systemName: "plus")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Text("Add Course")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.primary)
                 }
-                Text("Add Course")
+
+                Text("Create a new class and start tracking meetings.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: 120)
             }
-            .padding(.vertical, 8)
-            .frame(maxWidth: 140)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(borderColor, style: StrokeStyle(lineWidth: 1, dash: [6]))
+            )
         }
         .buttonStyle(.plain)
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
     }
 }
 
@@ -353,84 +467,125 @@ struct WeekScheduleView: View {
     let allLectures: [Lecture]
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text("Course Schedule")
-                .font(.title.bold())
-                .foregroundColor(.accentColor)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding([.top, .horizontal], 24)
+        VStack(alignment: .leading, spacing: 20) {
+            Text("This Week")
+                .font(.headline)
+                .foregroundStyle(.secondary)
 
-            ScrollView {
+            if upcomingDays.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    Text("No sessions scheduled in the next 7 days.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 36)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Color.platformCardBackground.opacity(0.9))
+                )
+            } else {
                 VStack(spacing: 16) {
-                    if allLectures.isEmpty {
-                        Text("No lectures scheduled.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.vertical, 24)
-                            .frame(maxWidth: .infinity)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
-                    } else {
-                        ViewThatFits(in: .horizontal) {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], spacing: 16) {
-                                daySections
-                            }
-
-                            VStack(spacing: 16) {
-                                daySections
-                            }
-                        }
+                    ForEach(upcomingDays, id: \.date) { day in
+                        DayScheduleCard(date: day.date, lectures: day.lectures)
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
             }
         }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.platformElevatedBackground.opacity(0.95))
+        )
     }
 
-    private var groupedLectures: [Date: [Lecture]] {
+    private var upcomingDays: [(date: Date, lectures: [Lecture])] {
         let calendar = Calendar.current
-        return Dictionary(grouping: allLectures) { lecture in
+        let today = calendar.startOfDay(for: Date())
+        guard let weekAhead = calendar.date(byAdding: .day, value: 7, to: today) else { return [] }
+
+        let upcomingLectures = allLectures
+            .filter { $0.date >= today && $0.date < weekAhead }
+            .sorted { $0.date < $1.date }
+
+        let grouped = Dictionary(grouping: upcomingLectures) { lecture in
             calendar.startOfDay(for: lecture.date)
         }
+
+        return grouped.keys
+            .sorted()
+            .map { date in
+                (date, grouped[date] ?? [])
+            }
     }
 
-    @ViewBuilder
-    private var daySections: some View {
-        ForEach(groupedLectures.keys.sorted(), id: \.self) { date in
-            VStack(alignment: .leading, spacing: 8) {
-                Text(date.formatted(.dateTime.weekday(.wide)))
-                    .font(.headline)
-                    .foregroundColor(.accentColor)
-                ForEach(groupedLectures[date] ?? []) { lecture in
-                    HStack(alignment: .top, spacing: 12) {
+    private struct DayScheduleCard: View {
+        let date: Date
+        let lectures: [Lecture]
+
+        @Environment(\.colorScheme) private var colorScheme
+
+        private var weekdayFormatter: DateFormatter {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE, MMM d"
+            return formatter
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(weekdayFormatter.string(from: date))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                ForEach(lectures) { lecture in
+                    HStack(alignment: .center, spacing: 14) {
                         Circle()
-                            .fill(lecture.course?.colorValue ?? .blue)
-                            .frame(width: 10, height: 10)
-                            .padding(.top, 4)
+                            .fill(lecture.course?.colorValue ?? .gray)
+                            .frame(width: 12, height: 12)
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(lecture.title)
-                                .font(.subheadline.bold())
-                                .foregroundColor(.primary)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
                                 .lineLimit(2)
-                                .minimumScaleFactor(0.8)
+                                .minimumScaleFactor(0.85)
+
                             if let courseName = lecture.course?.name {
                                 Text(courseName)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
+                                    .foregroundStyle(.secondary)
                             }
                         }
+
                         Spacer()
+
                         Text(lecture.date.formatted(.dateTime.hour().minute()))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.platformCardBackground.opacity(0.9))
+                    )
                 }
             }
-            .padding()
+            .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.platformCardBackground))
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: 1)
+            )
+        }
+
+        private var borderColor: Color {
+            colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
         }
     }
 }
