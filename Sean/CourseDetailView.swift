@@ -8,21 +8,7 @@
 import SwiftUI
 import SwiftData
 import Foundation
-#if os(macOS)
-import AppKit
-#endif
 import UniformTypeIdentifiers
-
-// Cross-platform helpers
-fileprivate extension Color {
-    static var capsuleBackground: Color {
-        #if os(macOS)
-        return Color(NSColor.controlBackgroundColor)
-        #else
-        return Color(.systemGray5)
-        #endif
-    }
-}
 
 struct CourseDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -35,6 +21,11 @@ struct CourseDetailView: View {
     @State private var selectedTab = 0
     @State private var showingSyllabusView = false
     @State private var showingEditCourseSheet = false
+    @State private var activeLectureForMaterial: Lecture? = nil
+    @State private var noteTargetLecture: Lecture? = nil
+    @State private var fileTargetLecture: Lecture? = nil
+    @State private var showingMaterialOptions = false
+    @State private var showingLectureFileImporter = false
 
     var body: some View {
         ZStack {
@@ -210,6 +201,53 @@ struct CourseDetailView: View {
                 showingEditCourseSheet = false
             }
         }
+        .sheet(item: $noteTargetLecture) { lecture in
+            LectureNoteComposerSheet(lecture: lecture) { noteText in
+                let newNote = LectureNote(content: noteText, lecture: lecture)
+                modelContext.insert(newNote)
+                activeLectureForMaterial = nil
+                noteTargetLecture = nil
+            }
+        }
+        .fileImporter(isPresented: $showingLectureFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+            guard let lecture = fileTargetLecture else { return }
+            switch result {
+            case .success(let urls):
+                for url in urls {
+                    do {
+                        let data = try Data(contentsOf: url)
+                        let newFile = LectureFile(filename: url.lastPathComponent, fileData: data, lecture: lecture)
+                        modelContext.insert(newFile)
+                    } catch {
+                        print("Failed to attach file: \(error)")
+                    }
+                }
+            case .failure(let error):
+                print("File import failed: \(error)")
+            }
+            fileTargetLecture = nil
+            activeLectureForMaterial = nil
+        }
+        .confirmationDialog(
+            "Add material",
+            isPresented: $showingMaterialOptions,
+            presenting: activeLectureForMaterial
+        ) { lecture in
+            Button("Add Note") {
+                noteTargetLecture = lecture
+                fileTargetLecture = nil
+            }
+            Button("Attach File") {
+                fileTargetLecture = lecture
+                showingLectureFileImporter = true
+                noteTargetLecture = nil
+            }
+            Button("Cancel", role: .cancel) {
+                activeLectureForMaterial = nil
+            }
+        } message: { lecture in
+            Text("Link new material to \(lecture.title)")
+        }
     }
 
     // MARK: - Lectures grid section with 2 columns and add material button on each card
@@ -230,7 +268,8 @@ struct CourseDetailView: View {
             } else {
                 ForEach(sortedLectures) { lecture in
                     LectureGridCardView(lecture: lecture) {
-                        // Action for add material button
+                        activeLectureForMaterial = lecture
+                        showingMaterialOptions = true
                     }
                     .onTapGesture {
                         selectedLecture = lecture
@@ -325,6 +364,52 @@ struct LectureGridCardView: View {
             }
             .padding(16)
             .frame(minHeight: 140) // Ensure minimum height for consistency
+        }
+    }
+}
+
+// MARK: - LectureNoteComposerSheet
+struct LectureNoteComposerSheet: View {
+    let lecture: Lecture
+    let onSave: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var noteText: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Lecture") {
+                    Text(lecture.title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(lecture.date, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(lecture.date, style: .time)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Quick Note") {
+                    TextField("Capture key points...", text: $noteText, axis: .vertical)
+                        .lineLimit(3...8)
+                }
+            }
+            .navigationTitle("New Lecture Note")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let trimmed = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        onSave(trimmed)
+                        dismiss()
+                    }
+                    .disabled(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
         }
     }
 }
@@ -731,7 +816,7 @@ struct CourseEditSheet: View {
                                     .font(.caption)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 12)
-                                    .background(selectedDays.contains(weekday.index) ? Color.accentColor.opacity(0.2) : Color.capsuleBackground)
+                                    .background(selectedDays.contains(weekday.index) ? Color.accentColor.opacity(0.2) : Color.platformChipBackground)
                                     .foregroundColor(selectedDays.contains(weekday.index) ? Color.accentColor : Color.primary)
                                     .clipShape(Capsule())
                             }
