@@ -18,6 +18,8 @@ struct CourseDetailView: View {
     @State private var showingAddSyllabusSheet = false
     @State private var showingFileImporter = false
     @State private var showingAddAssignmentSheet = false
+    @State private var assignmentFilter: AssignmentFilter = .upcoming
+    @State private var assignmentSort: AssignmentSort = .smart
     @State private var selectedTab = 0
     @State private var showingSyllabusView = false
     @State private var showingEditCourseSheet = false
@@ -281,8 +283,20 @@ struct CourseDetailView: View {
 
     // MARK: - Assignments section (unchanged)
     private var assignmentsSection: some View {
-        VStack(spacing: 16) {
-            if course.assignments.isEmpty {
+        let assignments = course.assignments
+        let stats = assignmentStats(for: assignments)
+        let sortedAssignments = sortAssignments(assignments)
+        let filteredAssignments = sortedAssignments.filter { assignmentFilter.includes($0) }
+
+        return VStack(spacing: 20) {
+            AssignmentSummaryCard(
+                total: stats.total,
+                completed: stats.completed,
+                overdue: stats.overdue,
+                upcoming: stats.upcoming
+            )
+
+            if assignments.isEmpty {
                 EmptyStateView(
                     icon: "checkmark.circle",
                     title: "No Assignments Yet",
@@ -291,18 +305,128 @@ struct CourseDetailView: View {
                     actionTitle: "Add Assignment"
                 )
             } else {
-                ForEach(course.assignments.sorted(by: {
-                    if let date1 = $0.dueDate, let date2 = $1.dueDate {
-                        return date1 < date2
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(assignmentFilter.descriptionText(filteredCount: filteredAssignments.count, totalCount: stats.total))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Menu {
+                            ForEach(AssignmentSort.allCases) { option in
+                                Button {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        assignmentSort = option
+                                    }
+                                } label: {
+                                    Label(option.menuTitle, systemImage: option.icon)
+                                    if option == assignmentSort {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label("Sort", systemImage: "arrow.up.arrow.down.circle")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.accentColor.opacity(0.12))
+                                )
+                        }
                     }
-                    return $0.createdDate > $1.createdDate
-                })) { assignment in
-                    AssignmentCardView(assignment: assignment)
+
+                    AssignmentFilterBar(selectedFilter: $assignmentFilter)
                 }
 
-                // Add assignment button
+                if filteredAssignments.isEmpty {
+                    FilteredAssignmentsEmptyState(filter: assignmentFilter) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            assignmentFilter = .all
+                            assignmentSort = .smart
+                        }
+                    }
+                } else {
+                    VStack(spacing: 14) {
+                        ForEach(filteredAssignments) { assignment in
+                            AssignmentCardView(assignment: assignment)
+                        }
+                    }
+                }
+
                 AddButton(action: { showingAddAssignmentSheet = true }, title: "Add Assignment")
+                    .padding(.top, 8)
             }
+        }
+    }
+
+    private func assignmentStats(for assignments: [Assignment]) -> (total: Int, completed: Int, overdue: Int, upcoming: Int) {
+        let total = assignments.count
+        let completed = assignments.filter { $0.isCompleted }.count
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let overdue = assignments.filter { assignment in
+            guard let dueDate = assignment.dueDate else { return false }
+            return !assignment.isCompleted && dueDate < startOfToday
+        }.count
+        let upcoming = assignments.filter { assignment in
+            guard let dueDate = assignment.dueDate else { return !assignment.isCompleted }
+            return !assignment.isCompleted && dueDate >= startOfToday
+        }.count
+        return (total, completed, overdue, upcoming)
+    }
+
+    private func sortAssignments(_ assignments: [Assignment]) -> [Assignment] {
+        switch assignmentSort {
+        case .smart:
+            return assignments.sorted { lhs, rhs in
+                if lhs.isCompleted != rhs.isCompleted {
+                    return !lhs.isCompleted
+                }
+                if let due1 = lhs.dueDate, let due2 = rhs.dueDate, due1 != due2 {
+                    return due1 < due2
+                }
+                if (lhs.dueDate != nil) != (rhs.dueDate != nil) {
+                    return lhs.dueDate != nil
+                }
+                if priorityRank(for: lhs) != priorityRank(for: rhs) {
+                    return priorityRank(for: lhs) < priorityRank(for: rhs)
+                }
+                return lhs.createdDate > rhs.createdDate
+            }
+        case .dueDate:
+            return assignments.sorted { lhs, rhs in
+                switch (lhs.dueDate, rhs.dueDate) {
+                case let (l?, r?):
+                    if l == r { return lhs.createdDate > rhs.createdDate }
+                    return l < r
+                case (nil, nil):
+                    return lhs.createdDate > rhs.createdDate
+                case (nil, _?):
+                    return false
+                case (_?, nil):
+                    return true
+                }
+            }
+        case .priority:
+            return assignments.sorted { lhs, rhs in
+                let lhsRank = priorityRank(for: lhs)
+                let rhsRank = priorityRank(for: rhs)
+                if lhsRank == rhsRank {
+                    return lhs.createdDate > rhs.createdDate
+                }
+                return lhsRank < rhsRank
+            }
+        case .recent:
+            return assignments.sorted { $0.createdDate > $1.createdDate }
+        }
+    }
+
+    private func priorityRank(for assignment: Assignment) -> Int {
+        switch assignment.priority.lowercased() {
+        case "high": return 0
+        case "medium": return 1
+        case "low": return 2
+        default: return 3
         }
     }
 }
@@ -572,45 +696,479 @@ struct EmptyStateView: View {
     }
 }
 
-struct AssignmentCardView: View {
-    let assignment: Assignment
+struct FilteredAssignmentsEmptyState: View {
+    let filter: AssignmentFilter
+    let onReset: () -> Void
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
+        VStack(spacing: 14) {
+            Image(systemName: filter.emptyIcon)
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text(filter.emptyTitle)
+                .font(.title3.weight(.semibold))
+            Text(filter.emptyMessage)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 240)
+            Button(action: onReset) {
+                Label("Reset Filters", systemImage: "arrow.counterclockwise")
+                    .font(.footnote.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.primary.opacity(0.06))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                )
+        )
+    }
+}
 
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(assignment.title)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Circle()
-                            .fill(assignment.priorityColor)
-                            .frame(width: 8, height: 8)
+struct AssignmentSummaryCard: View {
+    let total: Int
+    let completed: Int
+    let overdue: Int
+    let upcoming: Int
+
+    private var completionProgress: Double {
+        guard total > 0 else { return 0 }
+        return Double(completed) / Double(total)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Assignment Progress")
+                    .font(.headline)
+                Spacer()
+                Text("\(completed)/\(total) done")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: completionProgress)
+                .tint(.accentColor)
+
+            HStack(spacing: 12) {
+                AssignmentSummaryItem(icon: "clock.badge.checkmark", title: "Upcoming", value: upcoming, tint: .blue)
+                AssignmentSummaryItem(icon: "exclamationmark.triangle.fill", title: "Overdue", value: overdue, tint: .orange)
+                AssignmentSummaryItem(icon: "checkmark.circle.fill", title: "Completed", value: completed, tint: .green)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.accentColor.opacity(0.18), Color.accentColor.opacity(0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                )
+        )
+        .shadow(color: Color.black.opacity(0.1), radius: 18, x: 0, y: 10)
+    }
+}
+
+struct AssignmentSummaryItem: View {
+    let icon: String
+    let title: String
+    let value: Int
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Text("\(value)")
+                .font(.title3.bold())
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(tint.opacity(0.15))
+        )
+    }
+}
+
+struct AssignmentFilterBar: View {
+    @Binding var selectedFilter: AssignmentFilter
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(AssignmentFilter.allCases) { filter in
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            selectedFilter = filter
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: filter.icon)
+                            Text(filter.title)
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
+                        .foregroundStyle(selectedFilter == filter ? Color.accentColor : .secondary)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    selectedFilter == filter
+                                    ? Color.accentColor.opacity(0.18)
+                                    : Color.primary.opacity(0.06)
+                                )
+                        )
                     }
-                    if let description = assignment.assignmentDescription {
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+struct PriorityTag: View {
+    let priority: String
+
+    private var color: Color {
+        switch priority.lowercased() {
+        case "high": return .red
+        case "medium": return .orange
+        case "low": return .green
+        default: return .secondary
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(priority.capitalized)
+                .font(.caption.weight(.semibold))
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.16))
+        )
+        .foregroundStyle(color)
+    }
+}
+
+struct DueStatusBadge: View {
+    let assignment: Assignment
+
+    private var tint: Color {
+        if assignment.isCompleted { return .green }
+        if assignment.isOverdue { return .orange }
+        return assignment.dueDate == nil ? .secondary : .accentColor
+    }
+
+    private var icon: String {
+        assignment.dueDate == nil ? "calendar.badge.questionmark" : "calendar"
+    }
+
+    private var text: String {
+        if let dueDate = assignment.dueDate {
+            return dueDate.formatted(date: .abbreviated, time: .omitted)
+        }
+        return assignment.isCompleted ? "Wrapped up" : "No due date"
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(tint.opacity(0.12))
+        )
+        .foregroundStyle(tint)
+    }
+}
+
+struct StatusChip: View {
+    let icon: String
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .background(
+            Capsule()
+                .fill(tint.opacity(0.15))
+        )
+        .foregroundStyle(tint)
+        .font(.caption.weight(.semibold))
+    }
+}
+
+enum AssignmentFilter: String, CaseIterable, Identifiable {
+    case upcoming
+    case overdue
+    case completed
+    case all
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .upcoming: return "Upcoming"
+        case .overdue: return "Overdue"
+        case .completed: return "Completed"
+        case .all: return "All"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .upcoming: return "clock.badge.checkmark"
+        case .overdue: return "exclamationmark.triangle"
+        case .completed: return "checkmark.circle"
+        case .all: return "square.stack"
+        }
+    }
+
+    var emptyIcon: String {
+        switch self {
+        case .upcoming: return "sparkles"
+        case .overdue: return "party.popper"
+        case .completed: return "checkmark.seal"
+        case .all: return "tray"
+        }
+    }
+
+    var emptyTitle: String {
+        switch self {
+        case .upcoming: return "No Upcoming Work"
+        case .overdue: return "Nothing Overdue"
+        case .completed: return "No Completed Tasks Yet"
+        case .all: return "No Assignments"
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .upcoming: return "You’re all caught up. Schedule the next assignment to stay ahead."
+        case .overdue: return "Great job staying on top of deadlines!"
+        case .completed: return "Mark assignments complete as you finish them."
+        case .all: return "Start by adding your first assignment."
+        }
+    }
+
+    func includes(_ assignment: Assignment) -> Bool {
+        switch self {
+        case .upcoming:
+            return !assignment.isCompleted && !assignment.isOverdue
+        case .overdue:
+            return assignment.isOverdue
+        case .completed:
+            return assignment.isCompleted
+        case .all:
+            return true
+        }
+    }
+
+    func descriptionText(filteredCount: Int, totalCount: Int) -> String {
+        let pluralized = filteredCount == 1 ? "assignment" : "assignments"
+        switch self {
+        case .all:
+            let totalLabel = totalCount == 1 ? "assignment" : "assignments"
+            return "Showing all \(totalCount) \(totalLabel)"
+        case .upcoming:
+            return filteredCount == 0 ? "No upcoming assignments" : "\(filteredCount) upcoming \(pluralized)"
+        case .overdue:
+            return filteredCount == 0 ? "No overdue assignments" : "\(filteredCount) overdue \(pluralized)"
+        case .completed:
+            return filteredCount == 0 ? "Nothing marked complete yet" : "\(filteredCount) completed \(pluralized)"
+        }
+    }
+}
+
+enum AssignmentSort: CaseIterable, Identifiable {
+    case smart
+    case dueDate
+    case priority
+    case recent
+
+    var id: Self { self }
+
+    var menuTitle: String {
+        switch self {
+        case .smart: return "Smart Order"
+        case .dueDate: return "Due Date"
+        case .priority: return "Priority"
+        case .recent: return "Recently Added"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .smart: return "wand.and.stars"
+        case .dueDate: return "calendar"
+        case .priority: return "flag"
+        case .recent: return "clock.arrow.circlepath"
+        }
+    }
+}
+
+private extension Assignment {
+    var isOverdue: Bool {
+        guard let dueDate else { return false }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        return !isCompleted && dueDate < startOfToday
+    }
+
+    var dueCountdownText: String {
+        guard let dueDate else {
+            return isCompleted ? "Finished" : "No deadline"
+        }
+
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfDue = calendar.startOfDay(for: dueDate)
+        guard let dayDifference = calendar.dateComponents([.day], from: startOfToday, to: startOfDue).day else {
+            return dueDate.formatted(date: .abbreviated, time: .omitted)
+        }
+
+        switch dayDifference {
+        case ..<0:
+            return "Overdue"
+        case 0:
+            return "Due today"
+        case 1:
+            return "Due tomorrow"
+        default:
+            return "Due in \(dayDifference) days"
+        }
+    }
+}
+
+struct AssignmentCardView: View {
+    @Bindable var assignment: Assignment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(assignment.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    if let description = assignment.assignmentDescription, !description.isEmpty {
                         Text(description)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                    if let dueDate = assignment.dueDate {
-                        Text("Due: \(dueDate, style: .date)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
                     }
                 }
+
                 Spacer()
-                Image(systemName: assignment.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(assignment.isCompleted ? .green : .secondary)
-                    .font(.title2)
+
+                PriorityTag(priority: assignment.priority)
             }
-            .padding(16)
+
+            HStack(spacing: 10) {
+                DueStatusBadge(assignment: assignment)
+
+                if assignment.isCompleted {
+                    StatusChip(icon: "checkmark.seal.fill", text: "Completed", tint: .green)
+                } else if assignment.isOverdue {
+                    StatusChip(icon: "exclamationmark.triangle.fill", text: "Overdue", tint: .orange)
+                } else {
+                    StatusChip(icon: "clock", text: assignment.dueCountdownText, tint: .blue)
+                }
+
+                Spacer()
+
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        assignment.isCompleted.toggle()
+                    }
+                } label: {
+                    Label(assignment.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                          systemImage: assignment.isCompleted ? "arrow.uturn.backward.circle" : "checkmark.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(
+                            Capsule()
+                                .fill(assignment.isCompleted ? Color.primary.opacity(0.08) : Color.accentColor.opacity(0.18))
+                        )
+                        .foregroundStyle(assignment.isCompleted ? .primary : Color.accentColor)
+                }
+                .buttonStyle(.plain)
+            }
+            .font(.caption)
         }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(
+                    LinearGradient(
+                        colors: [assignment.priorityColor.opacity(0.18), Color.primary.opacity(0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+                )
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        var components: [String] = [assignment.title]
+        if let description = assignment.assignmentDescription, !description.isEmpty {
+            components.append(description)
+        }
+        if let dueDate = assignment.dueDate {
+            components.append("Due \(dueDate.formatted(date: .abbreviated, time: .omitted))")
+        }
+        components.append("Priority \(assignment.priority)")
+        components.append(assignment.isCompleted ? "Completed" : "Incomplete")
+        return components.joined(separator: ", ")
     }
 }
 
