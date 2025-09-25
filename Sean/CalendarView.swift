@@ -24,6 +24,14 @@ struct CalendarView: View {
 
     private let calendar = Calendar.current
 
+    private var trailingPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        .topBarTrailing
+        #else
+        .primaryAction
+        #endif
+    }
+
     private var activeCourseIDs: Set<UUID> {
         selectedCourseIDs
     }
@@ -135,7 +143,7 @@ struct CalendarView: View {
             .background(Color.platformElevatedBackground.ignoresSafeArea())
             .navigationTitle("Calendar")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: trailingPlacement) {
                     Button {
                         showingAddToCalendar = true
                     } label: {
@@ -143,7 +151,7 @@ struct CalendarView: View {
                     }
                     .accessibilityLabel("Add events to calendar")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: trailingPlacement) {
                     Menu {
                         Button {
                             selectedCourseIDs.removeAll()
@@ -550,7 +558,11 @@ struct AddToCalendarSheet: View {
                             }
                         }
                     }
+                    #if os(iOS)
                     .listStyle(.insetGrouped)
+                    #else
+                    .listStyle(.inset)
+                    #endif
                 }
             }
             .navigationTitle("Add to Calendar")
