@@ -17,6 +17,7 @@ final class Lecture {
     var notes: String?
     @Relationship(deleteRule: .cascade, inverse: \LectureNote.lecture) var lectureNotes: [LectureNote] = []
     @Relationship(deleteRule: .cascade, inverse: \LectureFile.lecture) var lectureFiles: [LectureFile] = []
+    @Relationship(deleteRule: .cascade, inverse: \LectureTask.lecture) var lectureTasks: [LectureTask] = []
     @Relationship var course: Course?
 
     init(

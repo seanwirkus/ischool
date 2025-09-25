@@ -26,6 +26,7 @@ struct CourseDetailView: View {
     @State private var fileTargetLecture: Lecture? = nil
     @State private var showingMaterialOptions = false
     @State private var showingLectureFileImporter = false
+    @State private var taskEditorContext: TaskEditorContext? = nil
 
     var body: some View {
         ZStack {
@@ -196,6 +197,44 @@ struct CourseDetailView: View {
                 modelContext.insert(newAssignment)
             }
         }
+        .sheet(item: $taskEditorContext) { context in
+            let assignments = (context.lecture.course?.assignments ?? []).sorted { lhs, rhs in
+                switch (lhs.dueDate, rhs.dueDate) {
+                case let (l?, r?):
+                    return l < r
+                case (.some, .none):
+                    return true
+                case (.none, .some):
+                    return false
+                case (.none, .none):
+                    return lhs.createdDate < rhs.createdDate
+                }
+            }
+
+            LectureTaskEditorSheet(
+                lecture: context.lecture,
+                task: context.task,
+                assignments: assignments
+            ) { title, details, dueDate, assignment in
+                if let existingTask = context.task {
+                    existingTask.title = title
+                    existingTask.details = details
+                    existingTask.dueDate = dueDate
+                    existingTask.assignment = assignment
+                } else {
+                    let newTask = LectureTask(
+                        title: title,
+                        details: details,
+                        dueDate: dueDate,
+                        lecture: context.lecture,
+                        assignment: assignment
+                    )
+                    modelContext.insert(newTask)
+                }
+            } onDelete: { task in
+                modelContext.delete(task)
+            }
+        }
         .sheet(isPresented: $showingEditCourseSheet) {
             CourseEditSheet(course: course, modelContext: modelContext) {
                 showingEditCourseSheet = false
@@ -267,10 +306,19 @@ struct CourseDetailView: View {
                 )
             } else {
                 ForEach(sortedLectures) { lecture in
-                    LectureGridCardView(lecture: lecture) {
-                        activeLectureForMaterial = lecture
-                        showingMaterialOptions = true
-                    }
+                    LectureGridCardView(
+                        lecture: lecture,
+                        onAddMaterial: {
+                            activeLectureForMaterial = lecture
+                            showingMaterialOptions = true
+                        },
+                        onAddTask: {
+                            taskEditorContext = TaskEditorContext(lecture: lecture, task: nil)
+                        },
+                        onEditTask: { task in
+                            taskEditorContext = TaskEditorContext(lecture: lecture, task: task)
+                        }
+                    )
                     .onTapGesture {
                         selectedLecture = lecture
                     }
@@ -310,7 +358,9 @@ struct CourseDetailView: View {
 // MARK: - LectureGridCardView with add material button
 struct LectureGridCardView: View {
     let lecture: Lecture
-    let addMaterialAction: () -> Void
+    let onAddMaterial: () -> Void
+    let onAddTask: () -> Void
+    let onEditTask: (LectureTask) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -334,7 +384,7 @@ struct LectureGridCardView: View {
                 Spacer()
 
                 Button {
-                    addMaterialAction()
+                    onAddMaterial()
                 } label: {
                     Label("Add material", systemImage: "paperclip")
                         .labelStyle(.iconOnly)
@@ -348,6 +398,22 @@ struct LectureGridCardView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add material to \(lecture.course?.name ?? "course")")
+
+                Button {
+                    onAddTask()
+                } label: {
+                    Label("Add meeting task", systemImage: "checklist")
+                        .labelStyle(.iconOnly)
+                        .font(.title3)
+                        .foregroundStyle(Color.accentColor)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add meeting task")
             }
 
             if hasDistinctTitle {
@@ -377,6 +443,8 @@ struct LectureGridCardView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(3)
             }
+
+            tasksSummary
         }
         .padding(16)
         .frame(minHeight: 150)
@@ -393,6 +461,272 @@ struct LectureGridCardView: View {
     private var meetingLabel: String {
         let trimmed = (lecture.meetingType ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? lecture.title : trimmed
+    }
+
+    private var tasksSummary: some View {
+        let tasks = sortedTasks
+        return Group {
+            if tasks.isEmpty {
+                Button(action: onAddTask) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checklist")
+                            .foregroundStyle(.accentColor)
+                        Text("Add meeting tasks")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.accentColor)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color.accentColor.opacity(0.25), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Label("Meeting tasks", systemImage: "checklist")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(completedTaskCount)/\(tasks.count) done")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    ForEach(Array(tasks.prefix(2))) { task in
+                        LectureTaskSummaryRow(task: task) {
+                            onEditTask(task)
+                        }
+                    }
+
+                    if tasks.count > 2 {
+                        Text("+\(tasks.count - 2) more tasks")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private var sortedTasks: [LectureTask] {
+        lecture.lectureTasks.sorted { lhs, rhs in
+            if lhs.isCompleted != rhs.isCompleted {
+                return !lhs.isCompleted && rhs.isCompleted
+            }
+
+            switch (lhs.dueDate, rhs.dueDate) {
+            case let (l?, r?):
+                return l < r
+            case (.some, .none):
+                return true
+            case (.none, .some):
+                return false
+            case (.none, .none):
+                return lhs.createdAt < rhs.createdAt
+            }
+        }
+    }
+
+    private var completedTaskCount: Int {
+        lecture.lectureTasks.filter { $0.isCompleted }.count
+    }
+}
+
+struct LectureTaskSummaryRow: View {
+    let task: LectureTask
+    let onEdit: () -> Void
+
+    var body: some View {
+        Button(action: onEdit) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .strikethrough(task.isCompleted, color: .primary.opacity(0.6))
+                    HStack(spacing: 6) {
+                        if let dueDate = task.dueDate {
+                            Text(dueDate, format: Date.FormatStyle(date: .abbreviated, time: .shortened))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let assignment = task.assignment {
+                            HStack(spacing: 4) {
+                                Image(systemName: "doc.text")
+                                Text(assignment.title)
+                                    .lineLimit(1)
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(Color.accentColor.opacity(0.08))
+                            )
+                        }
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.accentColor.opacity(0.05))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct TaskEditorContext: Identifiable {
+    let lecture: Lecture
+    let task: LectureTask?
+
+    var id: UUID {
+        task?.id ?? lecture.id
+    }
+}
+
+struct LectureTaskEditorSheet: View {
+    let lecture: Lecture
+    let task: LectureTask?
+    let assignments: [Assignment]
+    let onSave: (String, String?, Date?, Assignment?) -> Void
+    let onDelete: ((LectureTask) -> Void)?
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title: String
+    @State private var details: String
+    @State private var includeDueDate: Bool
+    @State private var dueDate: Date
+    @State private var selectedAssignment: Assignment?
+
+    init(
+        lecture: Lecture,
+        task: LectureTask?,
+        assignments: [Assignment],
+        onSave: @escaping (String, String?, Date?, Assignment?) -> Void,
+        onDelete: ((LectureTask) -> Void)? = nil
+    ) {
+        self.lecture = lecture
+        self.task = task
+        self.assignments = assignments
+        self.onSave = onSave
+        self.onDelete = onDelete
+
+        _title = State(initialValue: task?.title ?? "")
+        _details = State(initialValue: task?.details ?? "")
+        _includeDueDate = State(initialValue: task?.dueDate != nil)
+        _dueDate = State(initialValue: task?.dueDate ?? lecture.date)
+        _selectedAssignment = State(initialValue: task?.assignment)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Task basics") {
+                    TextField("What needs to happen?", text: $title)
+
+                    Toggle("Add due date", isOn: $includeDueDate.animation())
+
+                    if includeDueDate {
+                        DatePicker(
+                            "Due",
+                            selection: $dueDate,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                    }
+                }
+
+                Section("Details") {
+                    TextEditor(text: $details)
+                        .frame(minHeight: 80)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Color.secondary.opacity(0.2))
+                        )
+                }
+
+                Section("Link to assignment") {
+                    if assignments.isEmpty {
+                        Text("Create an assignment first to link it here.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Menu {
+                            Button("No linked assignment") {
+                                selectedAssignment = nil
+                            }
+                            ForEach(assignments, id: \.id) { assignment in
+                                Button {
+                                    selectedAssignment = assignment
+                                } label: {
+                                    if selectedAssignment?.id == assignment.id {
+                                        Label(assignment.title, systemImage: "checkmark")
+                                    } else {
+                                        Text(assignment.title)
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(selectedAssignment?.title ?? "Select assignment")
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(task == nil ? "New Meeting Task" : "Edit Meeting Task")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmedTitle.isEmpty else { return }
+
+                        let normalizedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let resolvedDetails = normalizedDetails.isEmpty ? nil : normalizedDetails
+                        let resolvedDueDate = includeDueDate ? dueDate : nil
+
+                        onSave(trimmedTitle, resolvedDetails, resolvedDueDate, selectedAssignment)
+                        dismiss()
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                if let task, let onDelete {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button(role: .destructive) {
+                            onDelete(task)
+                            dismiss()
+                        } label: {
+                            Label("Delete Task", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

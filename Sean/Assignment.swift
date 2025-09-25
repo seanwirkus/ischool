@@ -19,6 +19,7 @@ final class Assignment {
     var priority: String // "Low", "Medium", "High"
     var createdDate: Date
     @Relationship var course: Course?
+    @Relationship(deleteRule: .nullify, inverse: \LectureTask.assignment) var linkedLectureTasks: [LectureTask] = []
 
     init(id: UUID = UUID(), title: String, assignmentDescription: String? = nil, dueDate: Date? = nil, isCompleted: Bool = false, priority: String = "Medium", createdDate: Date = Date(), course: Course? = nil) {
         self.id = id
