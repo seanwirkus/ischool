@@ -268,30 +268,55 @@ struct HomeBackground: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        LinearGradient(
-            colors: gradientColors,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 0)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.02) : Color.black.opacity(0.03))
-                .blendMode(.overlay)
-        )
+        ZStack {
+            LinearGradient(
+                colors: gradientColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            AngularGradient(
+                colors: accentRingColors,
+                center: .center
+            )
+            .opacity(colorScheme == .dark ? 0.35 : 0.25)
+            .blur(radius: 180)
+
+            RadialGradient(
+                colors: [
+                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.45),
+                    Color.clear
+                ],
+                center: .topTrailing,
+                startRadius: 60,
+                endRadius: 520
+            )
+            .blendMode(.plusLighter)
+        }
     }
 
     private var gradientColors: [Color] {
         if colorScheme == .dark {
             return [
-                Color(red: 0.07, green: 0.07, blue: 0.08),
-                Color(red: 0.04, green: 0.04, blue: 0.05)
+                Color(hex: "#040509") ?? Color(red: 0.04, green: 0.04, blue: 0.06),
+                Color(hex: "#1A1C2C") ?? Color(red: 0.1, green: 0.11, blue: 0.17)
             ]
         } else {
             return [
-                Color(white: 0.97),
-                Color(white: 0.92)
+                Color(hex: "#F4F6FF") ?? Color(white: 0.97),
+                Color(hex: "#E7F6FF") ?? Color(white: 0.92)
             ]
         }
+    }
+
+    private var accentRingColors: [Color] {
+        [
+            Color(hex: "#5A5DF0") ?? .blue,
+            Color(hex: "#8B5CF6") ?? .purple,
+            Color(hex: "#FF7A18") ?? .orange,
+            Color(hex: "#4ECDC4") ?? .teal,
+            Color(hex: "#FF6FD8") ?? .pink
+        ]
     }
 }
 
@@ -306,17 +331,22 @@ struct QuickAddButton: View {
         Button(action: action) {
             VStack(spacing: 12) {
                 Circle()
-                    .strokeBorder(Color.secondary.opacity(0.4), lineWidth: 1)
+                    .fill(iconBackgroundGradient)
                     .frame(width: 48, height: 48)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(colorScheme == .dark ? 0.2 : 0.3), lineWidth: 1)
+                    )
+                    .shadow(color: iconGlowColor, radius: 18, x: 0, y: 10)
                     .overlay(
                         Image(systemName: icon)
                             .font(.title3.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.white)
                     )
 
                 Text(title)
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.white.opacity(0.92))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
@@ -325,19 +355,54 @@ struct QuickAddButton: View {
             .frame(minWidth: 112)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.platformCardBackground.opacity(0.9))
+                    .fill(buttonBackgroundGradient)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 1)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.15 : 0.25), lineWidth: 1.2)
             )
+            .shadow(color: buttonShadowColor, radius: 25, x: 0, y: 18)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
     }
 
-    private var borderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+    private var baseAccentColor: Color {
+        if colorScheme == .dark {
+            return Color(hex: "#6366F1") ?? .indigo
+        } else {
+            return Color(hex: "#4C6FFF") ?? .blue
+        }
+    }
+
+    private var buttonBackgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                baseAccentColor.lighten(by: colorScheme == .dark ? 0.08 : 0.18),
+                baseAccentColor.darken(by: 0.18)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var iconBackgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                baseAccentColor.lighten(by: 0.25),
+                baseAccentColor.darken(by: 0.1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var iconGlowColor: Color {
+        baseAccentColor.lighten(by: 0.3).opacity(colorScheme == .dark ? 0.6 : 0.45)
+    }
+
+    private var buttonShadowColor: Color {
+        baseAccentColor.darken(by: 0.2).opacity(colorScheme == .dark ? 0.55 : 0.35)
     }
 }
 
@@ -399,12 +464,18 @@ struct CourseChipView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.platformCardBackground.opacity(0.9))
+                .fill(backgroundGradient)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(highlightGradient)
+                        .blendMode(.softLight)
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: 1)
+                .strokeBorder(borderGradient, lineWidth: 1.1)
         )
+        .shadow(color: shadowColor, radius: 22, x: 0, y: 14)
     }
 
     private var upcomingLecture: Lecture? {
@@ -415,8 +486,42 @@ struct CourseChipView: View {
             .first
     }
 
-    private var borderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.05)
+    private var backgroundGradient: LinearGradient {
+        let base = course.colorValue
+        return LinearGradient(
+            colors: [
+                base.lighten(by: colorScheme == .dark ? 0.08 : 0.2),
+                base.darken(by: 0.15)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var highlightGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.08 : 0.2),
+                Color.white.opacity(0)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var borderGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.35 : 0.55),
+                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.2)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var shadowColor: Color {
+        course.colorValue.darken(by: 0.2).opacity(colorScheme == .dark ? 0.65 : 0.35)
     }
 }
 
@@ -452,19 +557,43 @@ struct AddCourseChipView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(borderColor, style: StrokeStyle(lineWidth: 1, dash: [6]))
+                    .fill(addCourseBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(addCourseBorder, style: StrokeStyle(lineWidth: 1.2, dash: [8]))
+                    )
             )
+            .shadow(color: addCourseShadow, radius: 16, x: 0, y: 10)
         }
         .buttonStyle(.plain)
     }
 
-    private var borderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+    private var addCourseBackground: LinearGradient {
+        let base = Color(hex: "#22D3EE") ?? .cyan
+        let blended = base.mixed(with: Color(hex: "#6366F1") ?? .indigo, amount: 0.35)
+        return LinearGradient(
+            colors: [
+                blended.lighten(by: colorScheme == .dark ? 0.05 : 0.22),
+                blended.darken(by: 0.12)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var addCourseBorder: Color {
+        Color.white.opacity(colorScheme == .dark ? 0.45 : 0.6)
+    }
+
+    private var addCourseShadow: Color {
+        (Color(hex: "#22D3EE") ?? .cyan).darken(by: 0.25).opacity(colorScheme == .dark ? 0.55 : 0.35)
     }
 }
 
 struct WeekScheduleView: View {
     let allLectures: [Lecture]
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -486,7 +615,11 @@ struct WeekScheduleView: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color.platformCardBackground.opacity(0.9))
+                        .fill(emptyStateBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(emptyStateBorder, lineWidth: 1)
+                        )
                 )
             } else {
                 VStack(spacing: 16) {
@@ -500,8 +633,13 @@ struct WeekScheduleView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.platformElevatedBackground.opacity(0.95))
+                .fill(containerBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(containerBorder, lineWidth: 1)
+                )
         )
+        .shadow(color: containerShadow, radius: 30, x: 0, y: 20)
     }
 
     private var upcomingDays: [(date: Date, lectures: [Lecture])] {
@@ -522,6 +660,47 @@ struct WeekScheduleView: View {
             .map { date in
                 (date, grouped[date] ?? [])
             }
+    }
+
+    private var containerBackground: LinearGradient {
+        LinearGradient(
+            colors: [
+                (Color(hex: "#0F172A") ?? .indigo).mixed(with: Color(hex: "#6366F1") ?? .indigo, amount: colorScheme == .dark ? 0.2 : 0.4),
+                (Color(hex: "#1E293B") ?? .blue).mixed(with: Color(hex: "#0EA5E9") ?? .teal, amount: colorScheme == .dark ? 0.15 : 0.35)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var containerBorder: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.25 : 0.4),
+                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.18)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var containerShadow: Color {
+        (Color(hex: "#0F172A") ?? .indigo).darken(by: 0.25).opacity(colorScheme == .dark ? 0.55 : 0.3)
+    }
+
+    private var emptyStateBackground: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.platformCardBackground.lighten(by: colorScheme == .dark ? 0.1 : 0.25),
+                Color.platformCardBackground.darken(by: 0.1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var emptyStateBorder: Color {
+        Color.white.opacity(colorScheme == .dark ? 0.2 : 0.35)
     }
 
     private struct DayScheduleCard: View {
@@ -572,20 +751,81 @@ struct WeekScheduleView: View {
                     .padding(.horizontal, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.platformCardBackground.opacity(0.9))
+                            .fill(rowBackground(for: lecture))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(rowBorder(for: lecture), lineWidth: 1)
+                            )
                     )
+                    .shadow(color: rowShadow(for: lecture), radius: 12, x: 0, y: 6)
                 }
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 1)
+                    .fill(cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(cardBorder, lineWidth: 1)
+                    )
+            )
+            .shadow(color: cardShadow, radius: 18, x: 0, y: 10)
+        }
+
+        private var paletteColor: Color {
+            if let first = lectures.first?.course?.colorValue {
+                return first
+            }
+            return Color(hex: "#64748B") ?? .gray
+        }
+
+        private var cardBackground: LinearGradient {
+            LinearGradient(
+                colors: [
+                    paletteColor.lighten(by: colorScheme == .dark ? 0.05 : 0.2),
+                    paletteColor.darken(by: 0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
         }
 
-        private var borderColor: Color {
-            colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+        private var cardBorder: LinearGradient {
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(colorScheme == .dark ? 0.25 : 0.4),
+                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.18)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        private var cardShadow: Color {
+            paletteColor.darken(by: 0.25).opacity(colorScheme == .dark ? 0.5 : 0.3)
+        }
+
+        private func rowBackground(for lecture: Lecture) -> LinearGradient {
+            let accent = lecture.course?.colorValue ?? paletteColor
+            return LinearGradient(
+                colors: [
+                    accent.lighten(by: colorScheme == .dark ? 0.12 : 0.28),
+                    accent.darken(by: 0.1)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+
+        private func rowBorder(for lecture: Lecture) -> Color {
+            let accent = lecture.course?.colorValue ?? paletteColor
+            return accent.lighten(by: 0.35).opacity(colorScheme == .dark ? 0.5 : 0.65)
+        }
+
+        private func rowShadow(for lecture: Lecture) -> Color {
+            let accent = lecture.course?.colorValue ?? paletteColor
+            return accent.darken(by: 0.25).opacity(colorScheme == .dark ? 0.45 : 0.25)
         }
     }
 }
