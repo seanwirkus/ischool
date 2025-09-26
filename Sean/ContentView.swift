@@ -8,6 +8,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Course.createdDate, order: .reverse) private var courses: [Course]
     @Query(sort: \Lecture.date, order: .forward) private var lectures: [Lecture]
+    @Query(sort: \Assignment.dueDate, order: .forward) private var assignments: [Assignment]
 
     @State private var showingAddCourseSheet = false
     @State private var selectedCourse: Course? = nil
@@ -17,6 +18,7 @@ struct ContentView: View {
     @State private var showingQuickAssignmentSheet = false
     @State private var showingQuickFileCourseSelector = false
     @State private var pendingFileURLs: [URL] = []
+    @StateObject private var dashboardModel = HomeDashboardModel()
 
     var body: some View {
         NavigationStack {
@@ -29,16 +31,18 @@ struct ContentView: View {
                         .ignoresSafeArea()
 
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 32) {
-                            header(isCompactWidth: isCompactWidth)
-
-                            coursesSection(isCompactWidth: isCompactWidth)
-
-                            WeekScheduleView(allLectures: lectures)
-                                .padding(.horizontal, 24)
-                        }
+                        EditableHomeDashboard(
+                            model: dashboardModel,
+                            layoutWidth: size.width,
+                            courses: courses,
+                            lectures: lectures,
+                            assignments: assignments,
+                            quickActions: quickActionItems,
+                            onTriggerAction: handleQuickAction,
+                            onAddCourse: { showingAddCourseSheet = true },
+                            onSelectCourse: { course in selectedCourse = course }
+                        )
                         .padding(.vertical, 32)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .frame(width: size.width, height: size.height)
@@ -111,102 +115,26 @@ struct ContentView: View {
         } message: { _ in
             Text("This action cannot be undone.")
         }
-    }
-
-    @ViewBuilder
-    private func header(isCompactWidth: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Today")
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(.primary)
-                Text("Stay on top of your courses and upcoming meetings.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Quick Capture")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) {
-                        ForEach(quickActionItems) { item in
-                            QuickAddButton(icon: item.icon, title: item.title, action: item.action)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: isCompactWidth ? 140 : 180), spacing: 12)], spacing: 12) {
-                        ForEach(quickActionItems) { item in
-                            QuickAddButton(icon: item.icon, title: item.title, action: item.action)
-                        }
-                    }
-                }
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.platformElevatedBackground.opacity(0.95))
+        .onAppear {
+            dashboardModel.configureIfNeeded(
+                courses: courses,
+                lectures: lectures,
+                assignments: assignments,
+                quickActions: quickActionItems
             )
         }
-        .padding(.horizontal, 24)
-        .padding(.top, isCompactWidth ? 8 : 16)
-    }
-
-    @ViewBuilder
-    private func coursesSection(isCompactWidth: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Courses")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            ViewThatFits(in: .horizontal) {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: isCompactWidth ? 180 : 220), spacing: 20)], spacing: 20) {
-                    courseChipContent
-                }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        courseChipContent
-                    }
-                    .padding(.horizontal, 2)
-                }
-            }
+        .onChange(of: courses) { _, updatedCourses in
+            dashboardModel.updateCourses(updatedCourses)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.platformElevatedBackground.opacity(0.95))
-        )
-        .padding(.horizontal, 24)
-    }
-
-    @ViewBuilder
-    private var courseChipContent: some View {
-        ForEach(courses) { course in
-            CourseChipView(course: course)
-                .onTapGesture { selectedCourse = course }
-                .contextMenu {
-                    Button("Rename") {
-                        selectedCourse = course
-                    }
-                    Button("Change Color") {
-                        selectedCourse = course
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        courseToDelete = course
-                        showDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
+        .onChange(of: lectures) { _, updatedLectures in
+            dashboardModel.updateLectures(updatedLectures)
         }
-        AddCourseChipView(action: { showingAddCourseSheet = true })
+        .onChange(of: assignments) { _, updatedAssignments in
+            dashboardModel.updateAssignments(updatedAssignments)
+        }
+        .onChange(of: quickActionItems) { _, items in
+            dashboardModel.updateQuickActions(items)
+        }
     }
 
     private var quickActionItems: [QuickActionItem] {
@@ -224,6 +152,21 @@ struct ContentView: View {
                 showingCalendar = true
             }
         ]
+    }
+
+    private func handleQuickAction(_ item: QuickActionItem) {
+        switch item.id {
+        case "note":
+            showingQuickNoteSheet = true
+        case "file":
+            showingQuickFileImporter = true
+        case "assignment":
+            showingQuickAssignmentSheet = true
+        case "calendar":
+            showingCalendar = true
+        default:
+            break
+        }
     }
 
     private func findNearestLecture(for course: Course) -> Lecture? {
@@ -257,11 +200,15 @@ struct ContentView: View {
     }
 }
 
-private struct QuickActionItem: Identifiable {
+struct QuickActionItem: Identifiable, Equatable {
     let id: String
     let icon: String
     let title: String
     let action: () -> Void
+
+    static func == (lhs: QuickActionItem, rhs: QuickActionItem) -> Bool {
+        lhs.id == rhs.id && lhs.icon == rhs.icon && lhs.title == rhs.title
+    }
 }
 
 struct HomeBackground: View {
@@ -298,25 +245,30 @@ struct HomeBackground: View {
     private var gradientColors: [Color] {
         if colorScheme == .dark {
             return [
-                Color(hex: "#040509") ?? Color(red: 0.04, green: 0.04, blue: 0.06),
-                Color(hex: "#1A1C2C") ?? Color(red: 0.1, green: 0.11, blue: 0.17)
+                Color(hex: "#0F1115") ?? Color(red: 0.07, green: 0.07, blue: 0.09),
+                Color(hex: "#1F262E") ?? Color(red: 0.13, green: 0.15, blue: 0.18),
+                Color(hex: "#2D343C") ?? Color(red: 0.18, green: 0.2, blue: 0.23)
             ]
         } else {
             return [
-                Color(hex: "#F4F6FF") ?? Color(white: 0.97),
-                Color(hex: "#E7F6FF") ?? Color(white: 0.92)
+                Color(hex: "#F6F5F2") ?? Color(white: 0.96),
+                Color(hex: "#ECEBE7") ?? Color(white: 0.92),
+                Color(hex: "#E2E4E5") ?? Color(white: 0.88)
             ]
         }
     }
 
     private var accentRingColors: [Color] {
-        [
-            Color(hex: "#5A5DF0") ?? .blue,
-            Color(hex: "#8B5CF6") ?? .purple,
-            Color(hex: "#FF7A18") ?? .orange,
-            Color(hex: "#4ECDC4") ?? .teal,
-            Color(hex: "#FF6FD8") ?? .pink
+        let baseNeutrals: [Color] = [
+            Color(hex: "#9BA8B3") ?? Color(red: 0.61, green: 0.66, blue: 0.7),
+            Color(hex: "#B4B6C2") ?? Color(red: 0.71, green: 0.71, blue: 0.76),
+            Color(hex: "#D8D9D1") ?? Color(red: 0.84, green: 0.85, blue: 0.82),
+            Color(hex: "#AFA7A0") ?? Color(red: 0.69, green: 0.65, blue: 0.63),
+            Color(hex: "#C7C1BA") ?? Color(red: 0.78, green: 0.76, blue: 0.73)
         ]
+        return baseNeutrals.map { neutral in
+            neutral.opacity(colorScheme == .dark ? 0.6 : 0.45)
+        }
     }
 }
 
