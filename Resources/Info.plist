@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleExecutable</key>
+	<string>Sean</string>
+	<key>CFBundleIdentifier</key>
+	<string>seanwirkus.Sean</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>This app needs access to your calendar to sync lecture times.</string>
 	<key>UIBackgroundModes</key>

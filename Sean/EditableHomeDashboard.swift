@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UniformTypeIdentifiers
 #if canImport(UIKit)
 import UIKit
@@ -252,14 +253,9 @@ struct EditableHomeDashboard: View {
                     get: { moduleByID(module.id) ?? module },
                     set: { updated in model.updateModule(updated) }
                 )
-                DashboardModuleCard(
+                ModernDashboardCard(
                     module: binding,
                     isEditing: model.isEditing,
-                    dragState: $model.dragState,
-                    namespace: dragNamespace,
-                    onMove: { draggedID, destinationID in
-                        model.moveModule(draggedID, to: destinationID)
-                    },
                     onEdit: { editingModule = moduleByID(module.id) },
                     onDuplicate: { moduleToDuplicate in model.duplicateModule(moduleToDuplicate) },
                     onDelete: { moduleToRemove in model.removeModule(moduleToRemove) },
@@ -280,7 +276,7 @@ struct EditableHomeDashboard: View {
                 .transition(.opacity.combined(with: .scale))
             }
         }
-        .animation(.spring(response: 0.5, dampingFraction: 0.82), value: model.modules)
+        .animation(.spring(response: 0.5, dampingFraction: 0.82), value: model.modules.count)
     }
 
     private func moduleByID(_ id: DashboardModule.ID) -> DashboardModule? {
@@ -338,15 +334,41 @@ struct DashboardModuleCard<Content: View>: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.04), lineWidth: 1)
         )
-        .padding(.horizontal, module.layout.horizontalPadding)
-        .padding(.vertical, module.layout.verticalPadding)
+        .padding(.horizontal, module.layout.horizontalPadding + 8)
+        .padding(.vertical, module.layout.verticalPadding + 12)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(.easeInOut(duration: 0.25), value: isPressed)
-        .onLongPressGesture(minimumDuration: 0.2) {
-            guard isEditing else { return }
+        .onTapGesture {
+            // Single tap to view/edit content
+            if !isEditing {
+                onEdit()
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.5) {
+            // Long press to start editing mode if not already editing
+            if !isEditing {
+                onEdit()
+            }
             isPressed = true
         } onPressingChanged: { pressing in
             if !pressing { isPressed = false }
+        }
+        .contextMenu {
+            // Right-click context menu for editing
+            Button("Edit Module") {
+                onEdit()
+            }
+            .disabled(isEditing)
+            
+            Button("Duplicate") {
+                onDuplicate(module)
+            }
+            
+            Divider()
+            
+            Button("Delete", role: .destructive) {
+                onDelete(module)
+            }
         }
         .onDrag {
             dragState.draggingModuleID = module.id
@@ -392,15 +414,18 @@ struct DashboardModuleCard<Content: View>: View {
     private var dragHandle: some View {
         Image(systemName: "line.3.horizontal")
             .font(.headline.weight(.medium))
-            .padding(10)
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.primary.opacity(0.06))
+                    .fill(Color.primary.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    )
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            )
+            .foregroundStyle(.primary.opacity(0.7))
+            .scaleEffect(isPressed ? 1.1 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isPressed)
             .accessibilityLabel("Reorder Module")
     }
 
@@ -456,11 +481,8 @@ struct ModuleDropDelegate: DropDelegate {
     }
 
     func dropEntered(info: DropInfo) {
-        guard dragState.activeDropTarget != currentModule.id else { return }
+        // Only set active drop target, don't move immediately
         dragState.activeDropTarget = currentModule.id
-        if let draggedID = dragState.draggingModuleID {
-            onMove(draggedID, currentModule.id)
-        }
     }
 
     func dropExited(info: DropInfo) {
@@ -470,15 +492,19 @@ struct ModuleDropDelegate: DropDelegate {
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        dragState.draggingModuleID = dragState.draggingModuleID ?? extractModuleID(from: info)
         return DropProposal(operation: .move)
     }
 
     func performDrop(info: DropInfo) -> Bool {
         dragState.activeDropTarget = nil
-        dragState.draggingModuleID = nil
-        guard let draggedID = extractModuleID(from: info) else { return false }
+        guard let draggedID = extractModuleID(from: info),
+              draggedID != currentModule.id else { 
+            dragState.draggingModuleID = nil
+            return false 
+        }
+        
         onMove(draggedID, currentModule.id)
+        dragState.draggingModuleID = nil
         return true
     }
 
@@ -560,7 +586,7 @@ struct DashboardModuleContent: View {
     }
 
     private var quickActionsModule: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 24) {
             Text("Quick Actions")
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -587,8 +613,8 @@ struct DashboardModuleContent: View {
     }
 
     private var assignmentsModule: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(module.metadata.assignmentTitle)
+        VStack(alignment: .leading, spacing: 24) {
+            Text("Assignments")
                 .font(.headline)
                 .foregroundStyle(.secondary)
             DashboardAssignmentTimeline(
@@ -600,7 +626,7 @@ struct DashboardModuleContent: View {
     }
 
     private var scheduleModule: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 24) {
             Text("This Week")
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -720,7 +746,7 @@ struct FlexibleView<Data: Collection, Content: View>: View where Data.Element: H
 
 // MARK: - DashboardModule Definitions
 
-struct DashboardModule: Identifiable, Hashable {
+struct DashboardModule: Identifiable {
     enum Kind: String, CaseIterable, Identifiable, Codable {
         case welcome
         case quickActions
@@ -869,19 +895,19 @@ struct DashboardModule: Identifiable, Hashable {
         scheduleModule.metadata.lectures = lectures
         modules.append(scheduleModule)
 
-        var focusModule = DashboardModule(kind: .focusTasks)
+        let focusModule = DashboardModule(kind: .focusTasks)
         modules.append(focusModule)
 
-        var noteModule = DashboardModule(kind: .pinnedNotes)
+        let noteModule = DashboardModule(kind: .pinnedNotes)
         modules.append(noteModule)
 
-        var examModule = DashboardModule(kind: .upcomingTests)
+        let examModule = DashboardModule(kind: .upcomingTests)
         modules.append(examModule)
 
-        var resourceModule = DashboardModule(kind: .resourceShortcuts)
+        let resourceModule = DashboardModule(kind: .resourceShortcuts)
         modules.append(resourceModule)
 
-        var customModule = DashboardModule(kind: .customText)
+        let customModule = DashboardModule(kind: .customText)
         modules.append(customModule)
 
         return modules
@@ -890,7 +916,7 @@ struct DashboardModule: Identifiable, Hashable {
 
 // MARK: - DashboardModuleLayout
 
-struct DashboardModuleLayout: Hashable {
+struct DashboardModuleLayout {
     var horizontalPadding: CGFloat
     var verticalPadding: CGFloat
     var contentInsets: EdgeInsets
@@ -911,7 +937,7 @@ struct DashboardModuleLayout: Hashable {
 
 // MARK: - DashboardModuleMetadata
 
-struct DashboardModuleMetadata: Hashable {
+struct DashboardModuleMetadata {
     var courses: [Course]
     var lectures: [Lecture]
     var assignments: [Assignment]
@@ -974,7 +1000,7 @@ struct DashboardModuleMetadata: Hashable {
 
 // MARK: - DashboardAccent
 
-struct DashboardAccent: Identifiable, Hashable, Codable {
+struct DashboardAccent: Identifiable {
     var id: UUID
     var name: String
     var gradient: DashboardGradient
@@ -999,7 +1025,7 @@ struct DashboardAccent: Identifiable, Hashable, Codable {
     }
 }
 
-struct DashboardGradient: Hashable, Codable {
+struct DashboardGradient {
     var start: Color
     var end: Color
 
@@ -1769,14 +1795,14 @@ struct DashboardQuickActionGrid: View {
         switch layoutStyle {
         case .singleRow:
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
+                HStack(spacing: 18) {
                     ForEach(actions) { item in
                         QuickAddButton(icon: item.icon, title: item.title) {
                             onTriggerAction(item)
                         }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 8)
             }
         case .adaptive:
             ViewThatFits(in: .horizontal) {
@@ -1785,7 +1811,7 @@ struct DashboardQuickActionGrid: View {
                 adaptiveGrid(columns: adaptiveColumns(minWidth: 120))
             }
         case .stacked:
-            VStack(spacing: 10) {
+            VStack(spacing: 16) {
                 ForEach(actions) { item in
                     DashboardStackedActionRow(item: item) {
                         onTriggerAction(item)
@@ -1793,7 +1819,7 @@ struct DashboardQuickActionGrid: View {
                 }
             }
         case .compactList:
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 ForEach(actions) { item in
                     Button {
                         onTriggerAction(item)
@@ -1808,8 +1834,8 @@ struct DashboardQuickActionGrid: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.secondary)
                         }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .fill(Color.primary.opacity(0.05))
@@ -1897,19 +1923,30 @@ struct DashboardCourseGrid: View {
     let onSelectCourse: (Course) -> Void
 
     private var gridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 220), spacing: 18)]
+        [GridItem(.adaptive(minimum: 240), spacing: 24)]
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 24) {
             if courses.isEmpty {
                 emptyState
             } else {
-                LazyVGrid(columns: gridColumns, spacing: 18) {
+                LazyVGrid(columns: gridColumns, spacing: 24) {
                     ForEach(courses.prefix(configuration.highlightLimit)) { course in
                         CourseChipView(course: course)
                             .onTapGesture {
                                 onSelectCourse(course)
+                            }
+                            .contextMenu {
+                                Button("View Course") {
+                                    onSelectCourse(course)
+                                }
+                                
+                                Divider()
+                                
+                                Button("Edit Course") {
+                                    // TODO: Implement course editing
+                                }
                             }
                     }
                     if configuration.allowsInlineCreation {
@@ -1969,7 +2006,7 @@ struct DashboardAssignmentTimeline: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             if filteredAssignments.isEmpty {
                 Text("No assignments to show")
                     .font(.subheadline)
@@ -1977,12 +2014,30 @@ struct DashboardAssignmentTimeline: View {
             } else {
                 ForEach(filteredAssignments) { assignment in
                     AssignmentRow(assignment: assignment, accent: accent, highlightPriority: configuration.highlightPriority)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(Color.primary.opacity(0.04))
                         )
+                        .onTapGesture {
+                            // TODO: Navigate to assignment detail
+                        }
+                        .contextMenu {
+                            Button("View Assignment") {
+                                // TODO: Navigate to assignment detail
+                            }
+                            
+                            Divider()
+                            
+                            Button("Mark as \(assignment.isCompleted ? "Incomplete" : "Complete")") {
+                                // TODO: Toggle assignment completion
+                            }
+                            
+                            Button("Edit Assignment") {
+                                // TODO: Edit assignment
+                            }
+                        }
                 }
             }
         }
@@ -2138,8 +2193,8 @@ struct DashboardWeeklySchedule: View {
         }
 
         private var lectureTitle: String {
-            if let title = lecture.title, !title.isEmpty {
-                return title
+            if !lecture.title.isEmpty {
+                return lecture.title
             }
             return "Session"
         }
@@ -2524,8 +2579,6 @@ struct DashboardModuleEditor: View {
             TextField("Title", text: $workingCopy.title)
             TextField("Subtitle", text: $workingCopy.subtitle)
             TextField("Icon", text: $workingCopy.metadata.iconName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
             Toggle("Pin module", isOn: $workingCopy.metadata.isPinned)
             if workingCopy.kind == .customText {
                 TextField("Headline", text: Binding(
@@ -2561,7 +2614,7 @@ struct DashboardModuleEditor: View {
                     .tag(accent.id)
                 }
             }
-            .pickerStyle(.navigationLink)
+            .pickerStyle(.menu)
 
             Toggle("Use neutral overlay", isOn: Binding(
                 get: { workingCopy.metadata.accentOverride != nil },
