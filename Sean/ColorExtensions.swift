@@ -97,4 +97,50 @@ extension Color {
         return Color.gray.opacity(0.1)
         #endif
     }
+
+    func mixed(with color: Color, amount: CGFloat) -> Color {
+        let amount = min(max(amount, 0), 1)
+
+        #if canImport(UIKit)
+        let base = UIColor(self)
+        let target = UIColor(color)
+
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+
+        guard base.getRed(&r1, green: &g1, blue: &b1, alpha: &a1),
+              target.getRed(&r2, green: &g2, blue: &b2, alpha: &a2) else {
+            return self
+        }
+
+        let r = r1 + (r2 - r1) * amount
+        let g = g1 + (g2 - g1) * amount
+        let b = b1 + (b2 - b1) * amount
+        let a = a1 + (a2 - a1) * amount
+
+        return Color(red: r, green: g, blue: b, opacity: a)
+        #elseif canImport(AppKit)
+        guard let base = NSColor(self).usingColorSpace(.deviceRGB),
+              let target = NSColor(color).usingColorSpace(.deviceRGB) else {
+            return self
+        }
+
+        let r = base.redComponent + (target.redComponent - base.redComponent) * amount
+        let g = base.greenComponent + (target.greenComponent - base.greenComponent) * amount
+        let b = base.blueComponent + (target.blueComponent - base.blueComponent) * amount
+        let a = base.alphaComponent + (target.alphaComponent - base.alphaComponent) * amount
+
+        return Color(red: r, green: g, blue: b, opacity: a)
+        #else
+        return self
+        #endif
+    }
+
+    func lighten(by amount: CGFloat) -> Color {
+        mixed(with: .white, amount: amount)
+    }
+
+    func darken(by amount: CGFloat) -> Color {
+        mixed(with: .black, amount: amount)
+    }
 }
